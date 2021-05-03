@@ -73,6 +73,7 @@ Are any missing?
 | Vorbis       	| ✓        	| ✓               	| ✓             	| ✓*      	|
 
 \* Might not work in some video containers.
+
 Multi-audio tracks is only supported in chromium after enabling `chrome://flags/#enable-experimental-web-platform-features`
 
 # UI Features

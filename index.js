@@ -907,7 +907,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         subContent: this.subtitleData.headers[this.subtitleData.current].header.slice(0, -1),
         renderMode: 'offscreenCanvas',
         fonts: this.subtitleData.fonts,
-        workerUrl: '/lib/subtitles-octopus-worker.js',
+        workerUrl: 'lib/subtitles-octopus-worker.js',
         timeOffset: 0.083,
         onReady: () => { // weird hack for laggy subtitles, this is some issue in SO
           if (!this.video.paused) {
