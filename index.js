@@ -3,7 +3,7 @@ class WebTorrentPlayer extends WebTorrent {
     super(options.WebTorrentOpts)
 
     this.scope = options.scope
-    this.worker = navigator.serviceWorker.register('/sw.js', { scope: this.scope }).catch(e => {
+    this.worker = navigator.serviceWorker.register('sw.js', { scope: this.scope }).catch(e => {
       if (String(e) === 'InvalidStateError: Failed to register a ServiceWorker: The document is in an invalid state.') {
         location.reload() // weird workaround for a weird bug
       } else {
