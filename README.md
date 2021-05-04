@@ -23,7 +23,7 @@ General motivation is to get rid of all duplicate RAM usage and reduce CPU usage
 \* more information below
 
 # Browser support
-Firefox is bad. I mean, it's good as a browser, but it clearly doesn't want to support webapps, so a lot of firefox functionality is limited, for example it only allows IDB files up to 2.14GB, doesn't support threaded canvas rendering etc. This means you won't be able to play files >2.14GB, and subtitle rendering won't work without changing `gfx.offscreencanvas.enabled` in `about:config`, since this is fixable, I might look at doing that sometime.
+Firefox is bad. I mean, it's good as a browser, but it clearly doesn't want to support webapps, so a lot of firefox functionality is limited, for example it only allows IDB files up to 2.14GB, doesn't support threaded canvas rendering etc. This means you won't be able to play files >2.14GB.
 
 # Container and codec support
 WebTorrentPlayer uses the browser's built in video player [thanks to [jimmywarting](https://github.com/jimmywarting/webtorrent-server-browser) for this idea] to play back files, this means playback support is browser dependent
