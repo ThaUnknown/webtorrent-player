@@ -117,6 +117,10 @@
   </section>
   <button type="button" onclick=t(1)>Play Sintel</button>
   <button type="button" onclick=t(2)>Play Tears Of Steel</button>
+  <button type="button" onclick=d(1)>Download and store Sintel</button>
+  <button type="button" onclick=d(2)>Download and store Tears Of Steel</button>
+  <input type="text" id='magn' placeholder="Magnet/Torrent">
+  <button type="button" onclick=client.playTorrent(id.value)>Play Magnet/Torrent</button>
 
   <script src="https://cdn.jsdelivr.net/npm/matroska-subtitles@latest/dist/matroska-subtitles.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/indexeddb-chunk-store@latest/idbchunkstore.min.js"></script>
@@ -159,13 +163,26 @@
       }
     })
 
+    function d(a) {
+      switch (a) {
+        case 1:
+          client.offlineDownload('08ada5a7a6183aae1e09d831df6748d566095a10')
+          break
+        case 2:
+          client.offlineDownload('209c8226b299b308beaf2b9cd3fb49212dbd13ec')
+          break
+        case 3:
+          client.offlineDownload('CE9156EB497762F8B7577B71C0647A4B0C3423E1')
+          break
+      }
+    }
     function t(a) {
       switch (a) {
         case 1:
-          client.playTorrent('https://webtorrent.io/torrents/sintel.torrent')
+          client.playTorrent('08ada5a7a6183aae1e09d831df6748d566095a10')
           break
         case 2:
-          client.playTorrent('https://webtorrent.io/torrents/tears-of-steel.torrent')
+          client.playTorrent('209c8226b299b308beaf2b9cd3fb49212dbd13ec')
           break
         case 3:
           client.playTorrent('CE9156EB497762F8B7577B71C0647A4B0C3423E1')
