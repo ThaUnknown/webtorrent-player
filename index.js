@@ -598,7 +598,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
 
   prettyBytes (num) {
     if (num < 1) return num + ' B'
-    const units = [' B', ' kB', ' MB', ' GB', ' TB']
+    const units = [' B', ' KB', ' MB', ' GB', ' TB']
     const exponent = Math.min(Math.floor(Math.log(num) / Math.log(1000)), units.length - 1)
     num = Number((num / Math.pow(1000, exponent)).toFixed(2))
     return num + units[exponent]
