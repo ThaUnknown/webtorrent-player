@@ -54,9 +54,9 @@ Options:
 }
 ```
 
-## `cleanupTorrents(leave)`
+## `cleanupTorrents()`
 
-Removes all torrents that aren't offline stored. If `leave` is `true` it will also remove all offline store torrents that haven't finished downloading, this is meant to be used when the user leaves/closes the app.
+Removes all torrents that aren't offline stored.
 
 ## `async buildVideo(torrent, options)`
 
@@ -75,6 +75,9 @@ Options:
 
 Cleans up player data, mainly to reduce RAM usage and mitigate video caching, this is always ran when you run `buildVideo()`
 
+## `offlineDownload(torrentID)`
+
+Downloads and stores specified torrent/magnet/etc allowing to download torrents across multiple sessions, and even play them back without any internet connection.
 
 ## `async resolveFileMedia(options)`
 
