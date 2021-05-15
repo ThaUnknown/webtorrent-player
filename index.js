@@ -11,7 +11,7 @@ class WebTorrentPlayer extends WebTorrent {
       }
     })
     window.addEventListener('beforeunload', () => {
-      this.cleanupTorrents(true)
+      this.cleanupTorrents()
       this.cleanupVideo()
     })
     // kind of a fetch event from service worker but for the main thread.
@@ -202,7 +202,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     this.updateDisplay()
     this.offlineTorrents = JSON.parse(localStorage.getItem('offlineTorrents')) || {}
     // adds all offline store torrents to the client
-    Object.values(this.offlineTorrents).forEach(torrentID => this.offlineDownload(new Blob([new Uint8Array(torrentID)]), true))
+    Object.values(this.offlineTorrents).forEach(torrentID => this.offlineDownload(new Blob([new Uint8Array(torrentID)])))
 
     this.streamedDownload = options.streamedDownload
 
@@ -1065,23 +1065,15 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   }
 
   // cleanup torrent and store
-  cleanupTorrents (leave) {
+  cleanupTorrents () {
   // creates an array of all non-offline store torrents and removes them
-    this.torrents.filter(torrent => {
-      if (this.offlineTorrents[torrent.infoHash]) {
-        if (!leave || torrent.done) return false
-        this.offlineTorrents[torrent.infoHash] = undefined
-        localStorage.setItem('offlineTorrents', JSON.stringify(this.offlineTorrents))
-      }
-      return true
-    }).forEach(torrent => torrent.destroy({ destroyStore: true }))
+    this.torrents.filter(torrent => !this.offlineTorrents[torrent.infoHash]).forEach(torrent => torrent.destroy({ destroyStore: true }))
   }
 
   // add torrent for offline download
-  offlineDownload (torrentID, skipVerify) {
+  offlineDownload (torrentID) {
     const torrent = this.add(torrentID, {
       store: IdbChunkStore,
-      skipVerify: skipVerify,
       announce: this.tracker.announce || [
         'wss://tracker.openwebtorrent.com',
         'wss://tracker.sloppyta.co:443/announce',
