@@ -74,7 +74,9 @@ Are any missing?
 
 \* Might not work in some video containers.
 
-Multi-audio tracks is only supported in chromium after enabling `chrome://flags/#enable-experimental-web-platform-features`
+Multi-audio tracks is only supported in after enabling flags:
+- Chromium: `chrome://flags/#enable-experimental-web-platform-features`
+- Firefox: `media.track.enabled`
 
 # UI Features
 - Classic controls: Play, Pause, Next, Last, Fullscreen, Mute, Volume, but also: Change audio track, Change subtitle track, Enter PiP, Enter theatre
