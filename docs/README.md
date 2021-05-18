@@ -58,7 +58,7 @@ Are any missing?
 | Theora       	| ✓        	| ✘               	| ✓             	| ✓       	|
 | VP8/9        	| ✓        	| ✓               	| ✓             	| ✓       	|
 
-\* Requires MSStore extension which you can get by clicking <a href="ms-windows-store://pdp/?ProductId=9n4wgh0z6vhq">this link</a> while using Edge.
+\* Requires MSStore extension which you can get by opening this link `ms-windows-store://pdp/?ProductId=9n4wgh0z6vhq` while using Edge.
 
 | Audio Codecs 	| Chromium 	| Mobile Chromium 	| Edge Chromium 	| Firefox 	|
 |-|:-:|:-:|:-:|:-:|
