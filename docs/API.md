@@ -8,7 +8,6 @@ Options:
 \* required
 ```js
 {
-  scope: String,                // * URL scope for service worker
   video: Node,                  // * Video element for the player
   player: Node,                 // * DOM Node that contains the player elements
   playerWrapper: Node,

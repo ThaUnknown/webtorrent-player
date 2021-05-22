@@ -2,7 +2,7 @@ class WebTorrentPlayer extends WebTorrent {
   constructor (options = {}) {
     super(options.WebTorrentOpts)
 
-    this.scope = options.scope
+    this.scope = window.location.pathname.substr(0, window.location.pathname.lastIndexOf('/') + 1)
     this.worker = navigator.serviceWorker.register('sw.js', { scope: this.scope }).catch(e => {
       if (String(e) === 'InvalidStateError: Failed to register a ServiceWorker: The document is in an invalid state.') {
         location.reload() // weird workaround for a weird bug
