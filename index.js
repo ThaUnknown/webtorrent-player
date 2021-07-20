@@ -189,8 +189,8 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     if ('mediaSession' in navigator) {
       navigator.mediaSession.setActionHandler('play', () => this.playPause())
       navigator.mediaSession.setActionHandler('pause', () => this.playPause())
-      navigator.mediaSession.setActionHandler('seekbackward', () => this.seek(seekTime))
-      navigator.mediaSession.setActionHandler('seekforward', () => this.seek(seekTime))
+      navigator.mediaSession.setActionHandler('seekbackward', () => this.seek(this.seekTime))
+      navigator.mediaSession.setActionHandler('seekforward', () => this.seek(this.seekTime))
       navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext())
     }
     if ('setPositionState' in navigator.mediaSession) this.video.addEventListener('timeupdate', () => this.updatePositionState())
@@ -905,7 +905,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         video: this.video,
         targetFps: await this.fps,
         subContent: this.subtitleData.headers[this.subtitleData.current].header.slice(0, -1),
-        renderMode: 'offscreenCanvas',
+        renderMode: 'offscreen',
         fonts: this.subtitleData.fonts,
         fallbackFont: 'https://fonts.gstatic.com/s/roboto/v20/KFOlCnqEu92Fr1MmEU9fBBc4.woff2',
         workerUrl: 'lib/subtitles-octopus-worker.js',
@@ -1043,10 +1043,10 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     this.cleanupTorrents()
     if (torrentID instanceof Object) {
       handleTorrent(torrentID, opts)
-    } else if (client.get(torrentID)) {
-      handleTorrent(client.get(torrentID), opts)
+    } else if (this.get(torrentID)) {
+      handleTorrent(this.get(torrentID), opts)
     } else {
-      const store = opts.expectedSize && performance.memory && !settings.torrent5
+      const store = opts.expectedSize && performance.memory
         ? (performance.memory.jsHeapSizeLimit - performance.memory.totalJSHeapSize) * 0.8 < this.getBytes(opts.expectedSize)
             ? IdbChunkStore
             : undefined
