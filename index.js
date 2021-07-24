@@ -1,3 +1,5 @@
+/* eslint-env browser */
+const keepAliveTime = 20000
 class WebTorrentPlayer extends WebTorrent {
   constructor (options = {}) {
     super(options.WebTorrentOpts)
@@ -15,29 +17,36 @@ class WebTorrentPlayer extends WebTorrent {
       this.cleanupVideo()
     })
     // kind of a fetch event from service worker but for the main thread.
-    navigator.serviceWorker.addEventListener('message', evt => {
-      let [infoHash, ...filePath] = evt.data.url.split(evt.data.scope + 'webtorrent/')[1].split('/')
+    navigator.serviceWorker.addEventListener('message', event => {
+      const { data } = event
+      if (!data.type || !data.type === 'webtorrent' || !data.url) return null
+      let [infoHash, ...filePath] = data.url.slice(data.url.indexOf(data.scope + 'webtorrent/') + 11 + data.scope.length).split('/')
       filePath = decodeURI(filePath.join('/'))
 
-      if (!infoHash || !filePath) return
+      if (!infoHash || !filePath) return null
 
-      const [port] = evt.ports
-      const [response, stream] = this.serveFile(this.get(infoHash).files.find(file => file.path === filePath), new Request(evt.data.url, {
-        headers: evt.data.headers,
-        method: evt.data.method
-      }))
+      const [port] = event.ports
+      const file = this.get(infoHash) && this.get(infoHash).files.find(file => file.path === filePath)
+      if (!file) return null
+      const [response, stream] = this.serveFile(file, data)
       const asyncIterator = stream && stream[Symbol.asyncIterator]()
       port.postMessage(response)
 
+      this.workerPortCount++
       port.onmessage = async msg => {
         if (msg.data) {
           const chunk = (await asyncIterator.next()).value
           port.postMessage(chunk)
           if (!chunk) port.onmessage = null
+          if (!this.workerKeepAliveInterval) this.workerKeepAliveInterval = setInterval(() => fetch(`${this.worker.scriptURL.substr(0, this.worker.scriptURL.lastIndexOf('/') + 1).slice(window.location.origin.length)}webtorrent/keepalive/`), keepAliveTime)
         } else {
-          console.log('Closing stream')
           stream.destroy()
           port.onmessage = null
+          this.workerPortCount--
+          if (!this.workerPortCount) {
+            clearInterval(this.workerKeepAliveInterval)
+            this.workerKeepAliveInterval = null
+          }
         }
       }
     })
@@ -311,20 +320,24 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       headers: {
         // Support range-requests
         'Accept-Ranges': 'bytes',
-        'Content-Type': file._getMimeType()
-      }
+        'Content-Type': file._getMimeType(),
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        Expires: '0'
+      },
+      body: req.method === 'HEAD' ? '' : 'STREAM'
     }
-    // force the browser to download the file if there is a specific header specified
-    if (req.headers.get('upgrade-insecure-requests') === '1') {
+    // force the browser to download the file if if it's opened in a new tab
+    if (req.destination === 'document') {
       res.headers['Content-Type'] = 'application/octet-stream'
       res.headers['Content-Disposition'] = 'attachment'
+      res.body = 'DOWNLOAD'
     }
 
     // `rangeParser` returns an array of ranges, or an error code (number) if
     // there was an error parsing the range.
-    let range = rangeParser(file.length, req.headers.get('range') || '')
+    let range = rangeParser(file.length, req.headers.range || '')
 
-    if (Array.isArray(range)) {
+    if (range.constructor === Array) {
       res.status = 206 // indicates that range-request was understood
 
       // no support for multi-range request, just use the first range
@@ -333,13 +346,8 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       res.headers['Content-Range'] = `bytes ${range.start}-${range.end}/${file.length}`
       res.headers['Content-Length'] = `${range.end - range.start + 1}`
     } else {
-      range = null
       res.headers['Content-Length'] = file.length
     }
-
-    res.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
-    res.headers.Expires = '0'
-    res.body = req.method === 'HEAD' ? '' : 'stream'
     // parser is really a passthrough mkv stream now
     const stream = file.createReadStream(range)
     if (file.name.endsWith('.mkv') && !this.subtitleData.parsed) {
@@ -775,7 +783,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       label.htmlFor = type === 'captions' ? `${type}-${track ? track.number : 'off'}-radio` : `${type}-${track.id}-radio`
       label.textContent = track
         ? type === 'captions'
-            ? (track.language || (!Object.values(this.subtitleData.headers).some(header => header.language === 'eng' || header.language === 'en') ? 'eng' : header.type)) + (track.name ? ' - ' + track.name : '')
+            ? (track.language || (!Object.values(this.subtitleData.headers).some(header => header.language === 'eng' || header.language === 'en') ? 'eng' : track.type)) + (track.name ? ' - ' + track.name : '')
             : (track.language || (!Object.values(this.video.audioTracks).some(track => track.language === 'eng' || track.language === 'en') ? 'eng' : track.label)) + (track.label ? ' - ' + track.label : '')
         : 'OFF' // TODO: clean this up, TLDR assume english track if track lang is undefined || 'und' and there isnt an existing eng track already
       frag.appendChild(input)
