@@ -15,7 +15,7 @@ self.addEventListener('fetch', event => {
   const { request } = event
   const { url, method, headers, destination } = request
   if (!url.includes(self.registration.scope + 'webtorrent/')) return null
-  if (url.includes(self.registration.scope + 'webtorrent/keepalive/')) return new Response()
+  if (url.includes(self.registration.scope + 'webtorrent/keepalive/')) return event.respondWith(new Response())
 
   event.respondWith(clients.matchAll({ type: 'window', includeUncontrolled: true })
     .then(clients => {

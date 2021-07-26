@@ -1,18 +1,24 @@
 /* eslint-env browser */
 const keepAliveTime = 20000
+const units = [' B', ' kB', ' MB', ' GB', ' TB']
 class WebTorrentPlayer extends WebTorrent {
   constructor (options = {}) {
     super(options.WebTorrentOpts)
 
-    this.scope = window.location.pathname.substr(0, window.location.pathname.lastIndexOf('/') + 1)
-    this.worker = navigator.serviceWorker.register('sw.js', { scope: this.scope }).catch(e => {
-      if (String(e) === 'InvalidStateError: Failed to register a ServiceWorker: The document is in an invalid state.') {
-        location.reload() // weird workaround for a weird bug
-      } else {
-        throw e
-      }
-    })
-    window.addEventListener('beforeunload', () => {
+    this.scope = location.pathname.substr(0, location.pathname.lastIndexOf('/') + 1)
+    this.worker = navigator.serviceWorker.controller
+    if (!this.worker) {
+      navigator.serviceWorker.register('sw.js', { scope: this.scope }).then(reg => {
+        this.worker = reg.active || reg.waiting || reg.installing
+      }).catch(e => {
+        if (String(e) === 'InvalidStateError: Failed to register a ServiceWorker: The document is in an invalid state.') {
+          location.reload() // weird workaround for a weird bug
+        } else {
+          throw e
+        }
+      })
+    }
+    window.addEventListener('unload', () => {
       this.cleanupTorrents()
       this.cleanupVideo()
     })
@@ -78,11 +84,11 @@ class WebTorrentPlayer extends WebTorrent {
     }
 
     if (this.controls.setProgress) {
-      this.controls.setProgress.addEventListener('input', (e) => this.setProgress(e.target.value))
-      this.controls.setProgress.addEventListener('mouseup', (e) => this.dragBarEnd(e.target.value))
-      this.controls.setProgress.addEventListener('touchend', (e) => this.dragBarEnd(e.target.value))
-      this.controls.setProgress.addEventListener('mousedown', (e) => this.dragBarStart(e.target.value))
-      this.video.addEventListener('timeupdate', (e) => {
+      this.controls.setProgress.addEventListener('input', e => this.setProgress(e.target.value))
+      this.controls.setProgress.addEventListener('mouseup', e => this.dragBarEnd(e.target.value))
+      this.controls.setProgress.addEventListener('touchend', e => this.dragBarEnd(e.target.value))
+      this.controls.setProgress.addEventListener('mousedown', e => this.dragBarStart(e.target.value))
+      this.video.addEventListener('timeupdate', e => {
         if (this.immerseTimeout && document.location.hash === '#player' && !this.video.paused) this.setProgress(e.target.currentTime / e.target.duration * 100)
       })
       this.video.addEventListener('ended', () => this.setProgress(100))
@@ -217,10 +223,11 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
 
     this.fps = 23.976
     this.video.addEventListener('loadedmetadata', () => {
-      if (this.currentFile.name.endsWith('.mkv')) {
-        this.fps = new Promise((resolve, reject) => {
-          if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
-            this.video.onplay = () => {
+      if (this.currentFile.name.endsWith('.mkv') && ('requestVideoFrameCallback' in HTMLVideoElement.prototype)) {
+        this.fps = new Promise(resolve => {
+          const resolveFps = () => {
+            this.video.removeEventListener('timeupdate', resolveFps)
+            if (!this.video.paused) {
               setTimeout(() => this.video.requestVideoFrameCallback((now, metaData) => {
                 let duration = 0
                 for (let index = this.video.played.length; index--;) {
@@ -238,13 +245,9 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
                   resolve(23.976) // smth went VERY wrong
                 }
               }), 2000)
-              this.video.onplay = undefined
             }
-          } else {
-            setTimeout(() => {
-              resolve(23.976)
-            }, 2000)
           }
+          this.video.addEventListener('timeupdate', resolveFps)
         })
       }
     })
@@ -253,12 +256,12 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       if (this[functionName]) {
         if (elements.constructor === Array) {
           for (const element of elements) {
-            element.addEventListener('click', (e) => {
+            element.addEventListener('click', e => {
               this[functionName](e.target.value)
             })
           }
         } else {
-          elements.addEventListener('click', (e) => {
+          elements.addEventListener('click', e => {
             this[functionName](e.target.value)
           })
         }
@@ -268,7 +271,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       if (a.key === 'F5') {
         a.preventDefault()
       }
-      if (document.location.hash === '#player') {
+      if (location.hash === '#player') {
         switch (a.key) {
           case ' ':
             this.playPause()
@@ -307,7 +310,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
             this.setVolume(Number(this.controls.setVolume.value) - 5)
             break
           case 'Escape':
-            document.location.hash = '#home'
+            location.hash = '#home'
             break
         }
       }
@@ -369,6 +372,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     } else {
       this.currentFile = this.videoFiles[0]
     }
+    await navigator.serviceWorker.ready
     this.video.src = `${this.scope}webtorrent/${torrent.infoHash}/${encodeURI(this.currentFile.path)}`
     this.video.load()
     this.playVideo()
@@ -605,11 +609,10 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   }
 
   prettyBytes (num) {
+    if (isNaN(num)) return '0 B'
     if (num < 1) return num + ' B'
-    const units = [' B', ' KB', ' MB', ' GB', ' TB']
     const exponent = Math.min(Math.floor(Math.log(num) / Math.log(1000)), units.length - 1)
-    num = Number((num / Math.pow(1000, exponent)).toFixed(2))
-    return num + units[exponent]
+    return Number((num / Math.pow(1000, exponent)).toFixed(2)) + units[exponent]
   }
 
   getBytes (str) {
@@ -739,8 +742,8 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     this.playVideo()
   }
 
-  async dragBarStart (progressPercent) {
-    await this.video.pause()
+  dragBarStart (progressPercent) {
+    this.video.pause()
     this.setProgress(progressPercent)
   }
 
@@ -800,7 +803,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   selectAudio (id) {
     if (id !== undefined) {
       for (const track of this.video.audioTracks) {
-        track.id === id ? track.enabled = true : track.enabled = false
+        track.enabled = track.id === id
       }
       this.seek(-0.5) // stupid fix because video freezes up when chaging tracks
     }
@@ -855,7 +858,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         let parser = new MatroskaSubtitles.SubtitleParser()
         this.handleSubtitleParser(parser, true)
         parser.on('finish', () => {
-          console.log('Sub parsing finished')
+          console.log('Sub parsing finished', this.toTS((performance.now() - t0) / 1000))
           this.subtitleData.parsed = true
           this.subtitleData.stream = undefined
           this.subtitleData.parser.destroy()
@@ -867,6 +870,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
           }
           resolve()
         })
+        const t0 = performance.now()
         console.log('Sub parsing started')
         this.subtitleData.parser = file.createReadStream().pipe(parser)
       } else {
@@ -901,7 +905,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     if (!skipFile) {
       parser.on('file', file => {
         if (file.mimetype === 'application/x-truetype-font' || file.mimetype === 'application/font-woff') {
-          this.subtitleData.fonts.push(window.URL.createObjectURL(new Blob([file.data], { type: file.mimetype })))
+          this.subtitleData.fonts.push(URL.createObjectURL(new Blob([file.data], { type: file.mimetype })))
         }
       })
     }
@@ -1029,7 +1033,6 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       torrent.on('noPeers', () => {
         if (this.onWarn) this.onWarn('no peers', torrent)
       })
-      await this.worker
       if (this.streamedDownload) {
         torrent.files.forEach(file => file.deselect())
         torrent.deselect(0, torrent.pieces.length - 1, false)
