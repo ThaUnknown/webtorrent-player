@@ -1,9 +1,20 @@
 /* eslint-env browser */
+/* global MediaMetadata, navNowPlaying */
+import WebTorrent from 'webtorrent'
+import rangeParser from 'range-parser'
+import { SubtitleParser, SubtitleStream } from 'matroska-subtitles'
+import HybridChunkStore from 'hybrid-chunk-store'
+import mime from 'mime'
+import SubtitlesOctopus from './lib/subtitles-octopus.js'
+
 const keepAliveTime = 20000
 const units = [' B', ' kB', ' MB', ' GB', ' TB']
-class WebTorrentPlayer extends WebTorrent {
+
+export default class WebTorrentPlayer extends WebTorrent {
   constructor (options = {}) {
     super(options.WebTorrentOpts)
+
+    this.storeOpts = options.storeOpts || {}
 
     this.scope = location.pathname.substr(0, location.pathname.lastIndexOf('/') + 1)
     this.worker = navigator.serviceWorker.controller
@@ -323,7 +334,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       headers: {
         // Support range-requests
         'Accept-Ranges': 'bytes',
-        'Content-Type': file._getMimeType(),
+        'Content-Type': mime.getType(file.name),
         'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
         Expires: '0'
       },
@@ -354,7 +365,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     // parser is really a passthrough mkv stream now
     const stream = file.createReadStream(range)
     if (file.name.endsWith('.mkv') && !this.subtitleData.parsed) {
-      this.subtitleData.stream = new MatroskaSubtitles.SubtitleStream(this.subtitleData.stream)
+      this.subtitleData.stream = new SubtitleStream(this.subtitleData.stream)
       this.handleSubtitleParser(this.subtitleData.stream)
       stream.pipe(this.subtitleData.stream)
     }
@@ -389,7 +400,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     this.nowPlaying = (opts.media && (this.videoFiles.length === 1 || (opts.forceMedia && opts.file))) ? opts.media : this.resolveFileMedia ? await this.resolveFileMedia({ fileName: this.currentFile.name, method: 'SearchName' }) : undefined
 
     if (this.nowPlaying) {
-      navNowPlaying.classList.remove('d-none') // TODO: fix
+      if (navNowPlaying) navNowPlaying.classList.remove('d-none')
 
       const episodeInfo = [this.nowPlaying.episodeNumber, this.nowPlaying.episodeTitle].filter(s => s).join(' - ')
 
@@ -452,7 +463,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     this.changeControlsIcon('selectCaptions', '')
     this.changeControlsIcon('selectAudio', '')
     if (this.controls.openPlaylist) this.controls.openPlaylist.setAttribute('disabled', '')
-    navNowPlaying.classList.add('d-none') // TODO: fix
+    if (navNowPlaying) navNowPlaying.classList.add('d-none')
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = undefined
     this.fps = 23.976
   }
@@ -548,13 +559,13 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }, 200)
   }
 
-  async togglePopout () {
+  togglePopout () {
     if (this.video.readyState) {
       if (!(this.burnIn && this.subtitleData.renderer)) {
-        this.video !== document.pictureInPictureElement ? await this.video.requestPictureInPicture() : await document.exitPictureInPicture()
+        this.video !== document.pictureInPictureElement ? this.video.requestPictureInPicture() : document.exitPictureInPicture()
       } else {
         if (document.pictureInPictureElement && !document.pictureInPictureElement.id) { // only exit if pip is the custom one, else overwrite existing pip with custom
-          await document.exitPictureInPicture()
+          document.exitPictureInPicture()
         } else {
           const canvas = document.createElement('canvas')
           const canvasVideo = document.createElement('video')
@@ -852,10 +863,10 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     subtitle.text || ''
   }
 
-  async parseSubtitles (file) { // parse subtitles fully after a download is finished
-    return new Promise((resolve, reject) => {
+  parseSubtitles (file) { // parse subtitles fully after a download is finished
+    return new Promise((resolve) => {
       if (file.name.endsWith('.mkv')) {
-        let parser = new MatroskaSubtitles.SubtitleParser()
+        let parser = new SubtitleParser()
         this.handleSubtitleParser(parser, true)
         parser.on('finish', () => {
           console.log('Sub parsing finished', this.toTS((performance.now() - t0) / 1000))
@@ -1020,16 +1031,17 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }
   }
 
-  async postDownload () {
+  postDownload () {
     this.onDownloadDone(this.currentFile)
-    await this.parseSubtitles(this.currentFile)
-    if (this.generateThumbnails) {
-      this.finishThumbnails(this.video.src)
-    }
+    this.parseSubtitles(this.currentFile).then(() => {
+      if (this.generateThumbnails) {
+        this.finishThumbnails(this.video.src)
+      }
+    })
   }
 
-  async playTorrent (torrentID, opts = {}) { // TODO: clean this up
-    const handleTorrent = async (torrent, opts) => {
+  playTorrent (torrentID, opts = {}) { // TODO: clean this up
+    const handleTorrent = (torrent, opts) => {
       torrent.on('noPeers', () => {
         if (this.onWarn) this.onWarn('no peers', torrent)
       })
@@ -1057,13 +1069,9 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     } else if (this.get(torrentID)) {
       handleTorrent(this.get(torrentID), opts)
     } else {
-      const store = opts.expectedSize && performance.memory
-        ? (performance.memory.jsHeapSizeLimit - performance.memory.totalJSHeapSize) * 0.8 < this.getBytes(opts.expectedSize)
-            ? IdbChunkStore
-            : undefined
-        : IdbChunkStore
       this.add(torrentID, {
-        store: store,
+        storeOpts: this.storeOpts,
+        store: HybridChunkStore,
         announce: this.tracker.announce || [
           'wss://tracker.openwebtorrent.com',
           'wss://tracker.sloppyta.co:443/announce',
@@ -1084,14 +1092,15 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   // add torrent for offline download
   offlineDownload (torrentID) {
     const torrent = this.add(torrentID, {
-      store: IdbChunkStore,
+      storeOpts: this.storeOpts,
+      store: HybridChunkStore,
       announce: this.tracker.announce || [
         'wss://tracker.openwebtorrent.com',
         'wss://tracker.sloppyta.co:443/announce',
         'wss://hub.bugout.link:443/announce'
       ]
     })
-    torrent.on('metadata', async () => {
+    torrent.on('metadata', () => {
       if (!this.offlineTorrents[torrent.infoHash]) {
         this.offlineTorrents[torrent.infoHash] = Array.from(torrent.torrentFile)
         localStorage.setItem('offlineTorrents', JSON.stringify(this.offlineTorrents))

@@ -3,6 +3,19 @@
 
 General motivation is to get rid of all duplicate RAM usage and reduce CPU usage, provide better/working alternatives for existing WebTorrent functionality, and provide any features you'd see in a modern video player, ex: YouTube's.
 
+# Install
+```
+npm install https://github.com/ThaUnknown/webtorrent-player
+```
+Then
+```js
+import WebTorrentPlayer from 'webtorrent-player'
+
+new WebTorrentPlayer({ opts })
+```
+Or you can include the bundle file [see index.html for an example]
+
+Note: the user needs to include the `/sw.js` and `/lib/subtitles-octopus-worker.*` since they are imported externally by the browser when registering workers.
 # Features
 - Support for ludicrous file sizes [upwards of 100GB]*
 - Browser based support for streaming video containers, codecs and multi-audio*
@@ -92,13 +105,3 @@ Multi-audio tracks is only supported in after enabling flags:
 Offline storage also uses IDB which on Firefox has a 2.14GB limit, meaning you can't actually store all that much when using Firefox, this isn't an issue on any Chromium browser.
 
 This feature allows you to download torrents across multiple sessions, and even play them back without any internet connection.
-# Dependencies
-- [WebTorrent](https://github.com/webtorrent/webtorrent)
-- [webtorrent-server-brower](https://github.com/jimmywarting/webtorrent-server-browser) [Included in lib]
-- [range-parser](https://github.com/jshttp/range-parser) [Included in lib]
-- [matroska-subtitles](https://github.com/mathiasvr/matroska-subtitles)
-- [SubtitlesOctopus](https://github.com/Dador/JavascriptSubtitlesOctopus/) [Included in lib]
-- [indexeddb-chunk-store](https://github.com/xuset/indexeddb-chunk-store)
-- [material icons](https://material.io/resources/icons/)
-
-Include these in any way you want.
