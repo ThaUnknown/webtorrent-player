@@ -169,6 +169,8 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
 
     this.onOfflineTorrent = options.onOfflineTorrent
 
+    this.destroyStore = options.destroyStore || true
+
     this.immerseTimeout = undefined
     this.immerseTime = options.immerseTime || 5
 
@@ -1086,7 +1088,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   // cleanup torrent and store
   cleanupTorrents () {
   // creates an array of all non-offline store torrents and removes them
-    this.torrents.filter(torrent => !this.offlineTorrents[torrent.infoHash]).forEach(torrent => torrent.destroy({ destroyStore: true }))
+    this.torrents.filter(torrent => !this.offlineTorrents[torrent.infoHash]).forEach(torrent => torrent.destroy({ destroyStore: this.destroyStore }))
   }
 
   // add torrent for offline download

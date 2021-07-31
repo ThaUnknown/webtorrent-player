@@ -23,6 +23,7 @@ Options:
   burnIn: Boolean,              // If true, PiP will burn-in subtitles real time [only if subtitles are available][VERY CPU intensive]
   seekTime: Number,             // Time in seconds for the player to seek
   streamedDownload: Boolean,    // If true, the player will only download pieces directly needed for playback
+  destroyStore: Boolean,        // If false, the files will be kept in storage even after playback finishes
   WebTorrentOpts: Object,       // Object of opts for WebTorrent
   // events documented below
   onWatched: Function,
