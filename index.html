@@ -139,23 +139,17 @@
       burnIn: true,
       seekTime: 2,
       immerseTime: 10,
-      generateThumbnails: true,
-      onDownloadDone: (name) => {
-        console.log(`${name} has finished downloading. Now seeding.`)
-      },
-      onWatched: () => {
-        console.log('Watched current video!')
-      },
-      onPlaylist: () => {
-        console.log('User wants to open playlist!')
-      },
-      onNext: () => {
-        console.log('User wants to play next video!')
-      },
-      onPrev: () => {
-        console.log('User wants to play last video!')
-      }
+      generateThumbnails: true
     })
+    client.on('prev', params => console.log('User wants to play previous video!', params))
+    client.on('next', params => console.log('User wants to play next video!', params))
+    client.on('playlist', params => console.log('User wants to open playlist!', params))
+    client.on('watched', params => console.log('User watched current video!', params))
+    client.on('download-done', params => console.log('Player finished downloading a file!', params))
+    client.on('video-files', params => console.log('Player found video files!', params))
+    client.on('offline-torrent', params => console.log('Player loaded an offline stored torrent!', params))
+    client.on('no-files', params => console.error('Player couldnt find any playable video files!', params))
+    client.on('no-peers', params => console.error('Player couldnt find any peers!', params))
 
     function d(a) {
       switch (a) {

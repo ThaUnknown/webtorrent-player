@@ -125,23 +125,14 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }
 
     this.completed = false
-    this.onWatched = options.onWatched
-    if (this.onWatched) this.video.addEventListener('timeupdate', () => this.checkCompletion())
+    this.video.addEventListener('timeupdate', () => this.checkCompletion())
 
-    this.onPlaylist = options.onPlaylist
-
-    this.onNext = options.onNext
-    this.onPrev = options.onPrev
     this.nextTimeout = undefined
-    if (this.onNext && options.autoNext) this.video.addEventListener('ended', () => this.playNext())
-
-    this.onError = options.onError
-    this.onWarn = options.onWarn
+    if (options.autoNext) this.video.addEventListener('ended', () => this.playNext())
 
     this.resolveFileMedia = options.resolveFileMedia
     this.currentFile = undefined
     this.videoFile = undefined
-    this.onVideoFiles = options.onVideoFiles
 
     if (this.controls.thumbnail) {
       this.generateThumbnails = options.generateThumbnails
@@ -164,10 +155,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       })
     }
 
-    this.onDownloadDone = options.onDownloadDone
     this.onDone = undefined
-
-    this.onOfflineTorrent = options.onOfflineTorrent
 
     this.destroyStore = options.destroyStore || true
 
@@ -530,7 +518,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   }
 
   openPlaylist () {
-    if (this.onPlaylist) this.onPlaylist()
+    this.emit('playlist', { files: this.videoFiles })
   }
 
   playNext () {
@@ -542,7 +530,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         const torrent = this.currentFile._torrent
         this.buildVideo(torrent, { media: nowPlaying, file: this.videoFiles[this.videoFiles.indexOf(this.currentFile) + 1] })
       } else {
-        if (this.onNext) this.onNext(this.currentFile, this.nowPlaying)
+        this.emit('next', { file: this.currentFile, filemedia: this.nowPlaying })
       }
     }, 200)
   }
@@ -556,7 +544,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         const torrent = this.currentFile._torrent
         this.buildVideo(torrent, { media: nowPlaying, file: this.videoFiles[this.videoFiles.indexOf(this.currentFile) - 1] })
       } else {
-        if (this.onPrev) this.onPrev(this.currentFile, this.nowPlaying)
+        this.emit('prev', { file: this.currentFile, filemedia: this.nowPlaying })
       }
     }, 200)
   }
@@ -685,7 +673,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   checkCompletion () {
     if (!this.completed && this.video.duration - 180 < this.video.currentTime) {
       this.completed = true
-      this.onWatched(this.currentFile, this.nowPlaying)
+      this.emit('watched', { file: this.currentFile, filemedia: this.nowPlaying })
     }
   }
 
@@ -1034,7 +1022,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   }
 
   postDownload () {
-    this.onDownloadDone(this.currentFile)
+    this.emit('download-done', { file: this.currentFile })
     this.parseSubtitles(this.currentFile).then(() => {
       if (this.generateThumbnails) {
         this.finishThumbnails(this.video.src)
@@ -1045,21 +1033,21 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   playTorrent (torrentID, opts = {}) { // TODO: clean this up
     const handleTorrent = (torrent, opts) => {
       torrent.on('noPeers', () => {
-        if (this.onWarn) this.onWarn('no peers', torrent)
+        this.emit('no-peers', torrent)
       })
       if (this.streamedDownload) {
         torrent.files.forEach(file => file.deselect())
         torrent.deselect(0, torrent.pieces.length - 1, false)
       }
       this.videoFiles = torrent.files.filter(file => this.videoExtensions.some(ext => file.name.endsWith(ext)))
-      if (this.onVideoFiles) this.onVideoFiles(this.videoFiles)
+      this.emit('video-files', { files: this.videoFiles })
       if (this.videoFiles.length > 1) {
         torrent.files.forEach(file => file.deselect())
       }
       if (this.videoFiles) {
         this.buildVideo(torrent, opts)
       } else {
-        if (this.onWarn) this.onWarn('no file', torrent)
+        this.emit('no-file', torrent)
         this.cleanupTorrents()
       }
     }
@@ -1107,7 +1095,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         this.offlineTorrents[torrent.infoHash] = Array.from(torrent.torrentFile)
         localStorage.setItem('offlineTorrents', JSON.stringify(this.offlineTorrents))
       }
-      if (this.onOfflineTorrent) this.onOfflineTorrent(torrent)
+      this.emit('offline-torrent', torrent)
     })
   }
 }

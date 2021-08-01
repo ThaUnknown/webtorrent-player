@@ -24,17 +24,7 @@ Options:
   seekTime: Number,             // Time in seconds for the player to seek
   streamedDownload: Boolean,    // If true, the player will only download pieces directly needed for playback
   destroyStore: Boolean,        // If false, the files will be kept in storage even after playback finishes
-  WebTorrentOpts: Object,       // Object of opts for WebTorrent
-  // events documented below
-  onWatched: Function,
-  onPlaylist: Function,
-  onNext: Function,
-  onPrev: Function,
-  onError: Function,
-  onWarn: Function,
-  onVideoFiles: Function,
-  onDownloadDone: Function,
-  onOfflineTorrent: Function
+  WebTorrentOpts: Object       // Object of opts for WebTorrent
 }
 ```
 Most of these options can be also **changed** after creating the WebTorrentPlayer instance, but some of them will need to be declared on init [optimisation ¯\\\_(ツ)\_/¯]
@@ -134,12 +124,12 @@ You can ofc modify the UI I made, but it might be painful.
 
 ## `on Events`
 
-- `onWatched(File, FileMedia)` triggers when the user watches most of the video
-- `onPlaylist()` triggers when the user clicks the playlist button [TLDR make your own UI for playlist]
-- `onNext(File, FileMedia)` - triggers when the player cant find the next file to play
-- `onPrev(File, FileMedia)` - triggers when the player cant find the last file to play
-- `onError(String, Torrent)` - triggers when the player encounters an error // TODO
-- `onWarn(String, Torrent)` - triggers when the player encounters an issue
-- `onVideoFiles([File])` - triggers when the player finds video files [for creating playlist UI, maybe download progress etc]
-- `onDownloadDone(File)` - triggers when a file finishes downloading
-- `onOfflineTorrent(Torrent)` - triggers when an offline torrent loads [for creating UI]
+- `client.on('watched', { file, filemedia } => {})` triggers when the user watches most of the video
+- `client.on('playlist', { files } => {})` triggers when the user clicks the playlist button [TLDR make your own UI for playlist]
+- `client.on('next', { file, filemedia } => {})` - triggers when the player cant find the next file to play
+- `client.on('prev', { file, filemedia } => {})` - triggers when the player cant find the last file to play
+- `client.on('video-files', { files } => {})` - triggers when the player finds video files [for creating playlist UI, maybe download progress etc]
+- `client.on('download-done', { file } => {})` - triggers when a file finishes downloading
+- `client.on('offline-torrent', { torrent } => {})` - triggers when an offline torrent loads [for creating UI]
+- `client.on('no-files', { torrent } => {})` - triggers when the player cant find a video file to play back
+- `client.on('no-peers', { torrent } => {})` - triggers when the player cant find peers to connect to
