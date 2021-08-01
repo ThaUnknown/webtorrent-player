@@ -1040,7 +1040,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         torrent.deselect(0, torrent.pieces.length - 1, false)
       }
       this.videoFiles = torrent.files.filter(file => this.videoExtensions.some(ext => file.name.endsWith(ext)))
-      this.emit('video-files', { files: this.videoFiles })
+      this.emit('video-files', { files: this.videoFiles, torrent: torrent })
       if (this.videoFiles.length > 1) {
         torrent.files.forEach(file => file.deselect())
       }

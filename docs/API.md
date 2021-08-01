@@ -128,7 +128,7 @@ You can ofc modify the UI I made, but it might be painful.
 - `client.on('playlist', { files } => {})` triggers when the user clicks the playlist button [TLDR make your own UI for playlist]
 - `client.on('next', { file, filemedia } => {})` - triggers when the player cant find the next file to play
 - `client.on('prev', { file, filemedia } => {})` - triggers when the player cant find the last file to play
-- `client.on('video-files', { files } => {})` - triggers when the player finds video files [for creating playlist UI, maybe download progress etc]
+- `client.on('video-files', { files, torrent } => {})` - triggers when the player finds video files [for creating playlist UI, maybe download progress etc]
 - `client.on('download-done', { file } => {})` - triggers when a file finishes downloading
 - `client.on('offline-torrent', { torrent } => {})` - triggers when an offline torrent loads [for creating UI]
 - `client.on('no-files', { torrent } => {})` - triggers when the player cant find a video file to play back
