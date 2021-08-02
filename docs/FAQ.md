@@ -23,7 +23,3 @@ Those get generated on the go, and get fully generated once the file finishes do
 #2 make sure the browser supports the codec/container you're trying to play back
 
 #3 make sure you're using a semi-modern browser and are using HTTPS
-
-# Known issues
-
-- with poor swarm health subtitles might fail to parse correctly and thus might not display until the torrent is re-enabled, TLDR this is because there's a lack of data for the parser
