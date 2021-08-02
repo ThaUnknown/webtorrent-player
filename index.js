@@ -373,13 +373,6 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     } else {
       this.currentFile = this.videoFiles[0]
     }
-    if (this.currentFile.done) {
-      this.postDownload()
-    } else {
-      this.onDone = this.currentFile.on('done', () => {
-        this.postDownload(true)
-      })
-    }
     // opts.media: mediaTitle, episodeNumber, episodeTitle, episodeThumbnail, mediaCover, name
     this.nowPlaying = (opts.media && (this.videoFiles.length === 1 || (opts.forceMedia && opts.file))) ? opts.media : this.resolveFileMedia ? await this.resolveFileMedia({ fileName: this.currentFile.name, method: 'SearchName' }) : undefined
 
@@ -407,6 +400,13 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }
     if (!this.currentFile.done && this.currentFile.name.endsWith('.mkv')) await this.initParser(this.currentFile)
     await navigator.serviceWorker.ready
+    if (this.currentFile.done) {
+      this.postDownload()
+    } else {
+      this.onDone = this.currentFile.on('done', () => {
+        this.postDownload(true)
+      })
+    }
     this.video.src = `${this.scope}webtorrent/${torrent.infoHash}/${encodeURI(this.currentFile.path)}`
     this.video.load()
     this.playVideo()
