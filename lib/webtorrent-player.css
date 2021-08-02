@@ -87,13 +87,16 @@
 .torrent-player:target a.miniplayer,
 .torrent-player .bottom input[type='range'][data-name='setProgress']+img[src=' '],
 .torrent-player video[src=''],
-.torrent-player.pip video,
 .torrent-player .ctrl[disabled],
 .torrent-player .ctrl[href=''],
 .torrent-player:fullscreen .ctrl[data-name='toggleTheatre'],
 .torrent-player:fullscreen .ctrl[data-name='openPlaylist'],
 .torrent-player:fullscreen .ctrl[data-name='togglePopout'] {
   display: none !important;
+}
+
+.torrent-player.pip video {
+  visibility: hidden;
 }
 
 .torrent-player .top {
@@ -396,12 +399,15 @@
 .torrent-player .bottom .popup {
   position: relative;
 }
+
 .torrent-player .bottom .popup input {
   display: none;
 }
+
 .torrent-player .bottom .popup input:checked+label {
   color: white
 }
+
 .torrent-player .bottom .popup label {
   cursor: pointer;
   color: rgba(255, 255, 255, 0.6);
@@ -424,7 +430,7 @@
   font-size: 1.6rem
 }
 
-.torrent-player .bottom .popup:hover .popup-menu{
+.torrent-player .bottom .popup:hover .popup-menu {
   visibility: visible;
 }
 
