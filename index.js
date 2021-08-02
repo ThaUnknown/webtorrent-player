@@ -157,7 +157,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
 
     this.onDone = undefined
 
-    this.destroyStore = options.destroyStore || true
+    this.destroyStore = !!options.destroyStore
 
     this.immerseTimeout = undefined
     this.immerseTime = options.immerseTime || 5
@@ -356,7 +356,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     const stream = file.createReadStream(range)
     if (file.name.endsWith('.mkv') && !this.subtitleData.parsed) {
       this.subtitleData.stream = new SubtitleStream(this.subtitleData.stream)
-      this.handleSubtitleParser(this.subtitleData.stream)
+      this.handleSubtitleParser(this.subtitleData.stream, true)
       stream.pipe(this.subtitleData.stream)
     }
 
@@ -373,17 +373,11 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     } else {
       this.currentFile = this.videoFiles[0]
     }
-    await navigator.serviceWorker.ready
-    this.video.src = `${this.scope}webtorrent/${torrent.infoHash}/${encodeURI(this.currentFile.path)}`
-    this.video.load()
-    this.playVideo()
-    if (this.controls.downloadFile) this.controls.downloadFile.href = `${this.scope}webtorrent/${torrent.infoHash}/${encodeURI(this.currentFile.path)}`
-
     if (this.currentFile.done) {
       this.postDownload()
     } else {
       this.onDone = this.currentFile.on('done', () => {
-        this.postDownload()
+        this.postDownload(true)
       })
     }
     // opts.media: mediaTitle, episodeNumber, episodeTitle, episodeThumbnail, mediaCover, name
@@ -411,6 +405,13 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       this.changeControlsIcon('nowPlaying', 'EP ' + episodeInfo)
       document.title = [this.nowPlaying.mediaTitle, episodeInfo ? 'EP ' + episodeInfo : false, this.nowPlaying.name || 'WebTorrentPlayer'].filter(s => s).join(' - ')
     }
+    if (!this.currentFile.done && this.currentFile.name.endsWith('.mkv')) await this.initParser(this.currentFile)
+    await navigator.serviceWorker.ready
+    this.video.src = `${this.scope}webtorrent/${torrent.infoHash}/${encodeURI(this.currentFile.path)}`
+    this.video.load()
+    this.playVideo()
+
+    if (this.controls.downloadFile) this.controls.downloadFile.href = `${this.scope}webtorrent/${torrent.infoHash}/${encodeURI(this.currentFile.path)}`
   }
 
   cleanupVideo () { // cleans up objects, attemps to clear as much video caching as possible
@@ -853,11 +854,11 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     subtitle.text || ''
   }
 
-  parseSubtitles (file) { // parse subtitles fully after a download is finished
+  parseSubtitles (file, skipFiles) { // parse subtitles fully after a download is finished
     return new Promise((resolve) => {
       if (file.name.endsWith('.mkv')) {
         let parser = new SubtitleParser()
-        this.handleSubtitleParser(parser, true)
+        this.handleSubtitleParser(parser, skipFiles)
         parser.on('finish', () => {
           console.log('Sub parsing finished', this.toTS((performance.now() - t0) / 1000))
           this.subtitleData.parsed = true
@@ -877,6 +878,15 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       } else {
         resolve()
       }
+    })
+  }
+
+  initParser (file) {
+    return new Promise(resolve => {
+      this.subtitleData.stream = new SubtitleStream()
+      this.handleSubtitleParser(this.subtitleData.stream)
+      this.subtitleData.stream.once('tracks', resolve)
+      file.createReadStream().pipe(this.subtitleData.stream)
     })
   }
 
@@ -1021,9 +1031,9 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }
   }
 
-  postDownload () {
+  postDownload (skipFiles) {
     this.emit('download-done', { file: this.currentFile })
-    this.parseSubtitles(this.currentFile).then(() => {
+    this.parseSubtitles(this.currentFile, skipFiles).then(() => {
       if (this.generateThumbnails) {
         this.finishThumbnails(this.video.src)
       }
@@ -1060,6 +1070,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       handleTorrent(this.get(torrentID), opts)
     } else {
       this.add(torrentID, {
+        destroyStoreOnDestroy: this.destroyStore,
         storeOpts: this.storeOpts,
         store: HybridChunkStore,
         announce: this.tracker.announce || [
