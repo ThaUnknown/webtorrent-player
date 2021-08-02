@@ -356,7 +356,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     const stream = file.createReadStream(range)
     if (file.name.endsWith('.mkv') && !this.subtitleData.parsed) {
       this.subtitleData.stream = new SubtitleStream(this.subtitleData.stream)
-      this.handleSubtitleParser(this.subtitleData.stream, true)
+      this.handleSubtitleParser(this.subtitleData.stream)
       stream.pipe(this.subtitleData.stream)
     }
 
