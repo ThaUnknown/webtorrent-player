@@ -1081,6 +1081,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       this.add(torrentID, {
         destroyStoreOnDestroy: this.destroyStore,
         storeOpts: this.storeOpts,
+        storeCacheSlots: 0,
         store: HybridChunkStore,
         announce: this.tracker.announce || [
           'wss://tracker.openwebtorrent.com',
@@ -1104,6 +1105,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     const torrent = this.add(torrentID, {
       storeOpts: this.storeOpts,
       store: HybridChunkStore,
+      storeCacheSlots: 0,
       announce: this.tracker.announce || [
         'wss://tracker.openwebtorrent.com',
         'wss://tracker.sloppyta.co:443/announce',
