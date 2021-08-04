@@ -8,7 +8,7 @@ import mime from 'mime'
 import SubtitlesOctopus from './lib/subtitles-octopus.js'
 
 const keepAliveTime = 20000
-const units = [' B', ' kB', ' MB', ' GB', ' TB']
+const units = [' B', ' KB', ' MB', ' GB', ' TB']
 
 export default class WebTorrentPlayer extends WebTorrent {
   constructor (options = {}) {
@@ -17,7 +17,7 @@ export default class WebTorrentPlayer extends WebTorrent {
     this.storeOpts = options.storeOpts || {}
 
     this.scope = location.pathname.substr(0, location.pathname.lastIndexOf('/') + 1)
-    this.worker = navigator.serviceWorker.controller
+    this.worker = location.origin + this.scope + 'sw.js' === navigator.serviceWorker?.controller?.scriptURL && navigator.serviceWorker.controller
     if (!this.worker) {
       navigator.serviceWorker.register('sw.js', { scope: this.scope }).then(reg => {
         this.worker = reg.active || reg.waiting || reg.installing
@@ -48,6 +48,8 @@ export default class WebTorrentPlayer extends WebTorrent {
       const [response, stream] = this.serveFile(file, data)
       const asyncIterator = stream && stream[Symbol.asyncIterator]()
       port.postMessage(response)
+      stream.on('close', () => stream.destroy())
+      stream.on('error', () => stream.destroy())
 
       this.workerPortCount++
       port.onmessage = async msg => {
@@ -415,9 +417,10 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   }
 
   cleanupVideo () { // cleans up objects, attemps to clear as much video caching as possible
-    if (this.subtitleData.renderer) this.subtitleData.renderer.dispose()
-    if (this.subtitleData.parser) this.subtitleData.parser.destroy()
-    if (this.subtitleData.fonts) this.subtitleData.fonts.forEach(file => URL.revokeObjectURL(file)) // ideally this should clean up after its been downloaded by the sw renderer, but oh well
+    this.subtitleData.renderer?.dispose()
+    this.subtitleData.parser?.destroy()
+    this.subtitleData.stream?.destroy()
+    this.subtitleData.fonts?.forEach(file => URL.revokeObjectURL(file)) // ideally this should clean up after its been downloaded by the sw renderer, but oh well
     if (this.controls.downloadFile) this.controls.downloadFile.href = ''
     this.currentFile = undefined
     this.video.poster = ''
@@ -862,8 +865,10 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         parser.on('finish', () => {
           console.log('Sub parsing finished', this.toTS((performance.now() - t0) / 1000))
           this.subtitleData.parsed = true
+          this.subtitleData.stream?.destroy()
           this.subtitleData.stream = undefined
           this.subtitleData.parser.destroy()
+          this.subtitleData.parser = undefined
           this.selectCaptions(this.subtitleData.current)
           parser = undefined
           if (!this.video.paused) {
@@ -885,8 +890,12 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     return new Promise(resolve => {
       this.subtitleData.stream = new SubtitleStream()
       this.handleSubtitleParser(this.subtitleData.stream)
-      this.subtitleData.stream.once('tracks', resolve)
-      file.createReadStream().pipe(this.subtitleData.stream)
+      this.subtitleData.stream.once('tracks', () => {
+        resolve()
+        fileStreamStream.destroy()
+      })
+      const fileStreamStream = file.createReadStream()
+      fileStreamStream.pipe(this.subtitleData.stream)
     })
   }
 
@@ -915,7 +924,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     })
     if (!skipFile) {
       parser.on('file', file => {
-        if (file.mimetype === 'application/x-truetype-font' || file.mimetype === 'application/font-woff') {
+        if (file.mimetype === 'application/x-truetype-font' || file.mimetype === 'application/font-woff' || file.mimetype === 'application/vnd.ms-opentype') {
           this.subtitleData.fonts.push(URL.createObjectURL(new Blob([file.data], { type: file.mimetype })))
         }
       })
