@@ -210,8 +210,8 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       navigator.mediaSession.setActionHandler('seekbackward', () => this.seek(this.seekTime))
       navigator.mediaSession.setActionHandler('seekforward', () => this.seek(this.seekTime))
       navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext())
+      if ('setPositionState' in navigator.mediaSession) this.video.addEventListener('timeupdate', () => this.updatePositionState())
     }
-    if ('setPositionState' in navigator.mediaSession) this.video.addEventListener('timeupdate', () => this.updatePositionState())
 
     this.subtitleExtensions = ['.srt', '.vtt', '.ass', '.ssa']
     this.videoExtensions = ['.3g2', '.3gp', '.asf', '.avi', '.dv', '.flv', '.gxf', '.m2ts', '.m4a', '.m4b', '.m4p', '.m4r', '.m4v', '.mkv', '.mov', '.mp4', '.mpd', '.mpeg', '.mpg', '.mxf', '.nut', '.ogm', '.ogv', '.swf', '.ts', '.vob', '.webm', '.wmv', '.wtv']
