@@ -1,4 +1,5 @@
 const path = require('path')
+const webpack = require('webpack')
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin')
 module.exports = {
   entry: './index.js',
@@ -11,6 +12,9 @@ module.exports = {
   mode: 'production',
   devtool: 'source-map',
   plugins: [
+    new webpack.ProvidePlugin({
+      process: 'process-fast'
+    }),
     new NodePolyfillPlugin()
   ]
 }
