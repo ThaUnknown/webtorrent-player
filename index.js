@@ -45,11 +45,12 @@ export default class WebTorrentPlayer extends WebTorrent {
       const [port] = event.ports
       const file = this.get(infoHash) && this.get(infoHash).files.find(file => file.path === filePath)
       if (!file) return null
-      const [response, stream] = this.serveFile(file, data)
+      const [response, stream, raw] = this.serveFile(file, data)
       const asyncIterator = stream && stream[Symbol.asyncIterator]()
       port.postMessage(response)
-      stream.on('close', () => stream.destroy())
-      stream.on('error', () => stream.destroy())
+
+      stream.on('close', () => raw.destroy())
+      stream.on('error', () => raw.destroy())
 
       this.workerPortCount++
       port.onmessage = async msg => {
@@ -59,7 +60,7 @@ export default class WebTorrentPlayer extends WebTorrent {
           if (!chunk) port.onmessage = null
           if (!this.workerKeepAliveInterval) this.workerKeepAliveInterval = setInterval(() => fetch(`${this.worker.scriptURL.substr(0, this.worker.scriptURL.lastIndexOf('/') + 1).slice(window.location.origin.length)}webtorrent/keepalive/`), keepAliveTime)
         } else {
-          stream.destroy()
+          raw.destroy()
           port.onmessage = null
           this.workerPortCount--
           if (!this.workerPortCount) {
@@ -75,7 +76,7 @@ export default class WebTorrentPlayer extends WebTorrent {
     // playPause, playNext, playLast, openPlaylist, toggleMute, setVolume, setProgress, selectCaptions, selectAudio, toggleTheatre, toggleFullscreen, togglePopout, forward, rewind
 
     if (this.controls.setVolume) {
-      this.controls.setVolume.addEventListener('input', (e) => this.setVolume(e.target.value))
+      this.controls.setVolume.addEventListener('input', e => this.setVolume(e.target.value))
       this.setVolume()
       this.oldVolume = undefined
       if ('audioTracks' in HTMLVideoElement.prototype && this.controls.audioButton) {
@@ -362,7 +363,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       stream.pipe(this.subtitleData.stream)
     }
 
-    return [res, req.method === 'GET' && (this.subtitleData.stream || stream)]
+    return [res, req.method === 'GET' && (this.subtitleData.stream || stream), req.method === 'GET' && stream]
   }
 
   async buildVideo (torrent, opts = {}) { // sets video source and creates a bunch of other media stuff
