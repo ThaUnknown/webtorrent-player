@@ -33,6 +33,7 @@ export default class WebTorrentPlayer extends WebTorrent {
       this.cleanupTorrents()
       this.cleanupVideo()
     })
+    this.workerPortCount = 0
     // kind of a fetch event from service worker but for the main thread.
     navigator.serviceWorker.addEventListener('message', event => {
       const { data } = event
@@ -47,28 +48,35 @@ export default class WebTorrentPlayer extends WebTorrent {
       if (!file) return null
       const [response, stream, raw] = this.serveFile(file, data)
       const asyncIterator = stream && stream[Symbol.asyncIterator]()
-      port.postMessage(response)
 
-      stream.on('close', () => raw.destroy())
-      stream.on('error', () => raw.destroy())
-
-      this.workerPortCount++
-      port.onmessage = async msg => {
-        if (msg.data) {
-          const chunk = (await asyncIterator.next()).value
-          port.postMessage(chunk)
-          if (!chunk) port.onmessage = null
-          if (!this.workerKeepAliveInterval) this.workerKeepAliveInterval = setInterval(() => fetch(`${this.worker.scriptURL.substr(0, this.worker.scriptURL.lastIndexOf('/') + 1).slice(window.location.origin.length)}webtorrent/keepalive/`), keepAliveTime)
-        } else {
-          raw.destroy()
-          port.onmessage = null
-          this.workerPortCount--
-          if (!this.workerPortCount) {
-            clearInterval(this.workerKeepAliveInterval)
-            this.workerKeepAliveInterval = null
-          }
+      const cleanup = () => {
+        port.onmessage = null
+        stream.destroy()
+        raw && raw.destroy()
+        this.workerPortCount--
+        if (!this.workerPortCount) {
+          clearInterval(this.workerKeepAliveInterval)
+          this.workerKeepAliveInterval = null
         }
       }
+
+      port.onmessage = async msg => {
+        if (msg.data) {
+          let chunk
+          try {
+            chunk = (await asyncIterator.next()).value
+          } catch (e) {
+            // chunk is yet to be downloaded or it somehow failed, should this be logged?
+          }
+          port.postMessage(chunk)
+          if (!chunk) cleanup()
+          if (!this.workerKeepAliveInterval) this.workerKeepAliveInterval = setInterval(() => fetch(`${this.worker.scriptURL.substr(0, this.worker.scriptURL.lastIndexOf('/') + 1).slice(window.location.origin.length)}webtorrent/keepalive/`), keepAliveTime)
+        } else {
+          cleanup()
+        }
+      }
+      this.workerPortCount++
+      port.postMessage(response)
     })
 
     this.video = options.video
@@ -356,14 +364,22 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       res.headers['Content-Length'] = file.length
     }
     // parser is really a passthrough mkv stream now
-    const stream = file.createReadStream(range)
-    if (file.name.endsWith('.mkv') && !this.subtitleData.parsed) {
+    const stream = req.method === 'GET' && file.createReadStream(range)
+    if (stream && file.name.endsWith('.mkv') && !this.subtitleData.parsed) {
       this.subtitleData.stream = new SubtitleStream(this.subtitleData.stream)
       this.handleSubtitleParser(this.subtitleData.stream)
       stream.pipe(this.subtitleData.stream)
+      this.subtitleData.stream.on('error', () => {
+        this.subtitleData.stream.destroy()
+        stream.destroy()
+      })
+      this.subtitleData.stream.on('close', () => {
+        this.subtitleData.stream.destroy()
+        stream.destroy()
+      })
     }
 
-    return [res, req.method === 'GET' && (this.subtitleData.stream || stream), req.method === 'GET' && stream]
+    return [res, this.subtitleData.stream || stream, this.subtitleData.stream && stream]
   }
 
   async buildVideo (torrent, opts = {}) { // sets video source and creates a bunch of other media stuff
