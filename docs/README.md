@@ -1,3 +1,4 @@
+![Logo](logo.png)
 # WebTorrentPlayer
 **WebTorrentPlayer** is a high performance module for your next **WebTorrent** based project, it works around all the gotchas with WebTorrent when working with any sort of video files.
 
