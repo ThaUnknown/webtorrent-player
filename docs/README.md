@@ -1,6 +1,9 @@
-<img src="logo.png" width="300">
+<div align="center">
+	<img src="logo.png" width="300">
 
 # WebTorrentPlayer
+</div>
+
 **WebTorrentPlayer** is a high performance module for your next **WebTorrent** based project, it works around all the gotchas with WebTorrent when working with any sort of video files.
 
 General motivation is to get rid of all duplicate RAM usage and reduce CPU usage, provide better/working alternatives for existing WebTorrent functionality, and provide any features you'd see in a modern video player, ex: YouTube's.
