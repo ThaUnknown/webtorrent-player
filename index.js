@@ -370,12 +370,12 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       this.handleSubtitleParser(this.subtitleData.stream)
       stream.pipe(this.subtitleData.stream)
       this.subtitleData.stream.on('error', () => {
-        this.subtitleData.stream.destroy()
-        stream.destroy()
+        this.subtitleData.stream?.destroy()
+        stream?.destroy()
       })
       this.subtitleData.stream.on('close', () => {
-        this.subtitleData.stream.destroy()
-        stream.destroy()
+        this.subtitleData.stream?.destroy()
+        stream?.destroy()
       })
     }
 
