@@ -570,7 +570,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }, 200)
   }
 
-  togglePopout () {
+  async togglePopout () {
     if (this.video.readyState) {
       if (!(this.burnIn && this.subtitleData.renderer)) {
         this.video !== document.pictureInPictureElement ? this.video.requestPictureInPicture() : document.exitPictureInPicture()
@@ -593,7 +593,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
               requestAnimationFrame(renderFrame)
             }
           }
-          canvasVideo.srcObject = canvas.captureStream()
+          canvasVideo.srcObject = canvas.captureStream(await this.fps)
           canvasVideo.onloadedmetadata = () => {
             canvasVideo.play()
             canvasVideo.requestPictureInPicture().then(
