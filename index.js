@@ -1102,8 +1102,8 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         store: HybridChunkStore,
         announce: this.tracker.announce || [
           'wss://tracker.openwebtorrent.com',
-          'wss://tracker.sloppyta.co:443/announce',
-          'wss://hub.bugout.link:443/announce'
+          'wss://spacetradersapi-chatbox.herokuapp.com:443/announce',
+          'wss://peertube.cpy.re:443/tracker/socket'
         ]
       }, torrent => {
         handleTorrent(torrent, opts)
@@ -1125,8 +1125,8 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       storeCacheSlots: 0,
       announce: this.tracker.announce || [
         'wss://tracker.openwebtorrent.com',
-        'wss://tracker.sloppyta.co:443/announce',
-        'wss://hub.bugout.link:443/announce'
+        'wss://spacetradersapi-chatbox.herokuapp.com:443/announce',
+        'wss://peertube.cpy.re:443/tracker/socket'
       ]
     })
     torrent.on('metadata', () => {
