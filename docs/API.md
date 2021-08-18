@@ -39,7 +39,6 @@ Options:
 {
   file: File,                   // Plays the specified file
   media: FileMedia,             // Uses this FileMedia instead of trying to resolve.
-  expectedFilesize: Number|PrettyBytes, // If specified, the player will choose if it should store the torrent in RAM or drive, default: drive
   forceMedia: Boolean           // When playing back batches [>1 video file] and specifying both file and media the player will ignore the media, and resolve for the target file, this forces it to use the given media instead of resolving, REQUIRES BOTH file and media to be specified to take effect
 }
 ```
@@ -109,6 +108,7 @@ The controls option is an object of DOM Nodes or Arrays of Nodes that trigger th
 - `toggleTheatre` - toggles theatre mode, it actually just adds `.immersed` to the [`playerWrapper`]() node
 - `toggleFullscreen` - toggles fullscreen, requires [`player`]() node
 - `togglePopout` - toggles PiP
+- `toggleCast` - toggles ChromeCast
 - `forward` - seeks forwards by amt specified in `seekTime`
 - `rewind` - seeks backwards by amt specified in `seekTime`
 - `downSpeed` - UI for displaying download speed

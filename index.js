@@ -1,4 +1,3 @@
-/* eslint-env browser */
 /* global MediaMetadata, navNowPlaying */
 import WebTorrent from 'webtorrent'
 import rangeParser from 'range-parser'
@@ -6,6 +5,7 @@ import { SubtitleParser, SubtitleStream } from 'matroska-subtitles'
 import HybridChunkStore from 'hybrid-chunk-store'
 import mime from 'mime'
 import SubtitlesOctopus from './lib/subtitles-octopus.js'
+import Peer from './lib/peer.js'
 
 const keepAliveTime = 20000
 const units = [' B', ' KB', ' MB', ' GB', ' TB']
@@ -202,6 +202,26 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     this.video.addEventListener('canplay', () => this.hideBuffering())
     this.video.addEventListener('loadeddata', () => this.hideBuffering())
     this.video.addEventListener('waiting', () => this.showBuffering())
+
+    const handleAvailability = aval => {
+      if (aval) {
+        this.controls.toggleCast.removeAttribute('disabled')
+      } else {
+        this.controls.toggleCast.setAttribute('disabled', '')
+      }
+    }
+    if ('PresentationRequest' in window) {
+      this.presentationRequest = new PresentationRequest(['lib/cast.html'])
+      this.presentationRequest.addEventListener('connectionavailable', this.initCast.bind(this))
+      this.presentationConnection = null
+      navigator.presentation.defaultRequest = this.presentationRequest
+      this.presentationRequest.getAvailability().then(aval => {
+        aval.onchange = e => handleAvailability(e.target.value)
+        handleAvailability(aval.value)
+      })
+    } else {
+      this.controls.toggleCast.setAttribute('disabled', '')
+    }
 
     if ('pictureInPictureEnabled' in document) {
       this.burnIn = options.burnIn
@@ -434,6 +454,8 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   }
 
   cleanupVideo () { // cleans up objects, attemps to clear as much video caching as possible
+    this.presentationConnection?.terminate()
+    if (document.pictureInPictureElement) document.exitPictureInPicture()
     this.subtitleData.renderer?.dispose()
     this.subtitleData.parser?.destroy()
     this.subtitleData.stream?.destroy()
@@ -570,52 +592,117 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }, 200)
   }
 
+  toggleCast () {
+    if (this.video.readyState) {
+      if (this.presentationConnection) {
+        this.presentationConnection?.terminate()
+      } else {
+        this.presentationRequest.start()
+      }
+    }
+  }
+
+  initCast (event) {
+    let peer = new Peer({ polite: true })
+
+    this.presentationConnection = event.connection
+    this.presentationConnection.addEventListener('terminate', () => {
+      this.presentationConnection = null
+      this.changeControlsIcon('toggleCast', 'cast')
+      this.player.classList.remove('pip')
+      peer = null
+    })
+
+    peer.signalingPort.onmessage = ({ data }) => {
+      this.presentationConnection.send(data)
+    }
+
+    this.presentationConnection.addEventListener('message', ({ data }) => {
+      peer.signalingPort.postMessage(data)
+    })
+
+    peer.dc.onopen = async () => {
+      await this.fps
+      if (peer && this.presentationConnection) {
+        this.changeControlsIcon('toggleCast', 'cast_connected')
+        this.player.classList.add('pip')
+        const tracks = []
+        if (this.burnIn && this.subtitleData.renderer) {
+          const { stream, destroy } = await this.getBurnIn()
+          tracks.push(stream.getTracks()[0], this.video.captureStream().getAudioTracks()[0])
+          this.presentationConnection.addEventListener('terminate', destroy)
+        } else {
+          const stream = this.video.captureStream()
+          tracks.push(stream.getVideoTracks()[0], stream.getAudioTracks()[0])
+        }
+        for (const track of tracks) {
+          peer.pc.addTrack(track)
+        }
+        this.video.play() // video pauses for some reason
+      }
+    }
+  }
+
   async togglePopout () {
     if (this.video.readyState) {
-      if (!(this.burnIn && this.subtitleData.renderer)) {
-        this.video !== document.pictureInPictureElement ? this.video.requestPictureInPicture() : document.exitPictureInPicture()
-      } else {
-        if (document.pictureInPictureElement && !document.pictureInPictureElement.id) { // only exit if pip is the custom one, else overwrite existing pip with custom
-          document.exitPictureInPicture()
+      if (this.burnIn) {
+        await this.fps
+        if (!this.subtitleData.renderer) {
+          this.video !== document.pictureInPictureElement ? this.video.requestPictureInPicture() : document.exitPictureInPicture()
         } else {
-          const canvas = document.createElement('canvas')
-          const canvasVideo = document.createElement('video')
-          const context = canvas.getContext('2d', { alpha: false })
-          const subtitleCanvas = this.subtitleData.renderer.canvas
-          let running = true
-          canvas.width = this.video.videoWidth
-          canvas.height = this.video.videoHeight
-
-          const renderFrame = () => {
-            if (running === true) {
-              context.drawImage(this.video, 0, 0)
-              context.drawImage(subtitleCanvas, 0, 0, canvas.width, canvas.height)
-              requestAnimationFrame(renderFrame)
+          if (document.pictureInPictureElement && !document.pictureInPictureElement.id) { // only exit if pip is the custom one, else overwrite existing pip with custom
+            document.exitPictureInPicture()
+          } else {
+            const canvasVideo = document.createElement('video')
+            const { stream, destroy } = await this.getBurnIn()
+            canvasVideo.srcObject = stream
+            canvasVideo.onloadedmetadata = () => {
+              canvasVideo.play()
+              canvasVideo.requestPictureInPicture().then(
+                this.player.classList.add('pip')
+              ).catch(e => {
+                console.warn('Failed To Burn In Subtitles ' + e)
+                destroy()
+                canvasVideo.remove()
+                this.player.classList.remove('pip')
+              })
+            }
+            canvasVideo.onleavepictureinpicture = () => {
+              destroy()
+              canvasVideo.remove()
+              this.player.classList.remove('pip')
             }
           }
-          canvasVideo.srcObject = canvas.captureStream(await this.fps)
-          canvasVideo.onloadedmetadata = () => {
-            canvasVideo.play()
-            canvasVideo.requestPictureInPicture().then(
-              this.player.classList.add('pip')
-            ).catch(e => {
-              console.warn('Failed To Burn In Subtitles ' + e)
-              running = false
-              canvasVideo.remove()
-              canvas.remove()
-              this.player.classList.remove('pip')
-            })
-          }
-          canvasVideo.onleavepictureinpicture = () => {
-            running = false
-            canvasVideo.remove()
-            canvas.remove()
-            this.player.classList.remove('pip')
-          }
+        }
+      } else {
+        this.video !== document.pictureInPictureElement ? this.video.requestPictureInPicture() : document.exitPictureInPicture()
+      }
+    }
+  }
+
+  async getBurnIn () {
+    if (this.burnIn) {
+      const canvas = document.createElement('canvas')
+      const context = canvas.getContext('2d', { alpha: false })
+      let running = true
+      canvas.width = this.video.videoWidth
+      canvas.height = this.video.videoHeight
+
+      const renderFrame = () => {
+        if (running === true) {
+          context.drawImage(this.video, 0, 0)
+          context.drawImage(this.subtitleData?.renderer?.canvas, 0, 0, canvas.width, canvas.height)
           requestAnimationFrame(renderFrame)
         }
       }
+      requestAnimationFrame(renderFrame)
+      const destroy = () => {
+        running = false
+        canvas.remove()
+      }
+      return { stream: canvas.captureStream(await this.fps), destroy }
     }
+    return null
   }
 
   toTS (sec, full) {

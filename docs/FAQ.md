@@ -8,9 +8,11 @@ To improve torrent availability and swarm health, this is VERY unlikely to ever 
 
 NO. Read above.
 
-## Will you do ChromeCast?
+## Why is my Cast playback lagging?
 
-It is in [theory possible](https://github.com/johanholmerin/browsercast), even with subtitles for which I could re-use the PiP code, but I don't know how. If you have an idea how to cast a `canvas.captureStream()` source object, then please, make a PR!
+If you're using burn-in, then it's probably because Cast playback and burn-in is asyncronous, meaning it only runs when the browser has the resources to render it. With heavy video files or subtitles it might require more CPU to run it at the video's framerate. Additionally if your hardware lacks hardware accelerated 3d rendering, video decoding and encoding you might experience framerate drops.
+
+If you're not using burn-in, then it's most likely something to do with your network.
 
 ## Why aren't all seeking preview thumbnails visible?
 

@@ -28,7 +28,8 @@ Note: the user needs to include the `/sw.js` and `/lib/subtitles-octopus-worker.
 - Subtitle support [SRT, VTT, SSA, ASS]*
 	- Softcoded/embedded subtitles [embedded in video file]
 	- External subtitles [external files]
-	- Subtitle display in PiP
+	- Full subtitle support display in PiP
+	- Full subtitle support in Cast
 - Offline file storage [allows you to play back specified torrents when offline]*
 - Feature rich UI*
 	- Highly optimized and responsive
@@ -37,6 +38,9 @@ Note: the user needs to include the `/sw.js` and `/lib/subtitles-octopus-worker.
 	- Keybinds
 	- Seeking preview thumbnails
 - Auto-play next video
+- Cast support
+	- All subtitles formats [if burn-in is enabled]
+	- All codecs [even ones unsupported by cast, if burn-in is enabled]
 
 \* more information below
 
@@ -97,7 +101,7 @@ Multi-audio tracks is only supported in after enabling flags:
 - Firefox: `media.track.enabled`
 
 # UI Features
-- Classic controls: Play, Pause, Next, Last, Fullscreen, Mute, Volume, but also: Change audio track, Change subtitle track, Enter PiP, Enter theatre
+- Classic controls: Play, Pause, Next, Last, Fullscreen, Mute, Volume, but also: Change audio track, Change subtitle track, Enter PiP, Cast, Enter theatre
 - Seeking preview thumbnails
 - MediaSession display
 - Buffering UI

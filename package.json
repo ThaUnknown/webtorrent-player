@@ -28,8 +28,9 @@
   "standard": {
     "ignore": [
       "/dist/*",
-      "/lib/*"
-    ]
+      "/lib/subtitles-octopus-worker.js"
+    ],
+    "env": "browser"
   },
   "author": "ThaUnknown_",
   "license": "GPL-3.0",
