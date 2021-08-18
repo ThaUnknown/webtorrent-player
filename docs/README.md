@@ -4,7 +4,7 @@
 # WebTorrentPlayer
 </div>
 
-**WebTorrentPlayer** is a high performance module for your next **WebTorrent** based project, it works around all the gotchas with WebTorrent when working with any sort of video files.
+**WebTorrentPlayer** is a high performance player module for your next **WebTorrent** based project, it works around all the gotchas with WebTorrent when working with any sort of video files. It also fully supports streaming in all it's features.
 
 General motivation is to get rid of all duplicate RAM usage and reduce CPU usage, provide better/working alternatives for existing WebTorrent functionality, and provide any features you'd see in a modern video player, ex: YouTube's.
 
@@ -41,11 +41,12 @@ Note: the user needs to include the `/sw.js` and `/lib/subtitles-octopus-worker.
 - Cast support
 	- All subtitles formats [if burn-in is enabled]
 	- All codecs [even ones unsupported by cast, if burn-in is enabled]
+- Fully client-sided
 
 \* more information below
 
 # Browser support
-Firefox is bad. I mean, it's good as a browser, but it clearly doesn't want to support webapps, so a lot of firefox functionality is limited, for example it only allows IDB files up to 2.14GB, doesn't support threaded canvas rendering etc. This means you won't be able to play files >2.14GB.
+Firefox is bad. I mean, it's good as a browser, but it clearly doesn't want to support webapps, so a lot of firefox functionality is limited, for example it only allows IDB files up to 2.14GB meaing you will end up using a lot more RAM, doesn't support threaded canvas rendering etc.
 
 # Container and codec support
 WebTorrentPlayer uses the browser's built in video player [thanks to [jimmywarting](https://github.com/jimmywarting/webtorrent-server-browser) for this idea] to play back files, this means playback support is browser dependent
@@ -111,6 +112,6 @@ Multi-audio tracks is only supported in after enabling flags:
 - Download currently playing file
 
 # Offline storage
-Offline storage also uses IDB which on Firefox has a 2.14GB limit, meaning you can't actually store all that much when using Firefox, this isn't an issue on any Chromium browser.
+Offline storage also uses IDB which on Firefox has a 2.14GB limit, meaning you can't actually offline store all that much when using Firefox, this isn't an issue on any Chromium browser.
 
 This feature allows you to download torrents across multiple sessions, and even play them back without any internet connection.
