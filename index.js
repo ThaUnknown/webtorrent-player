@@ -456,7 +456,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   cleanupVideo () { // cleans up objects, attemps to clear as much video caching as possible
     this.presentationConnection?.terminate()
     if (document.pictureInPictureElement) document.exitPictureInPicture()
-    this.subtitleData.renderer?.dispose()
+    this.subtitleData.renderer?.destroy()
     this.subtitleData.parser?.destroy()
     this.subtitleData.stream?.destroy()
     this.subtitleData.fonts?.forEach(file => URL.revokeObjectURL(file)) // ideally this should clean up after its been downloaded by the sw renderer, but oh well
