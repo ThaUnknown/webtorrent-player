@@ -387,7 +387,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     const stream = req.method === 'GET' && file.createReadStream(range)
     if (stream && file.name.endsWith('.mkv') && !this.subtitleData.parsed) {
       this.subtitleData.stream = new SubtitleStream(this.subtitleData.stream)
-      this.handleSubtitleParser(this.subtitleData.stream)
+      this.handleSubtitleParser(this.subtitleData.stream, true)
       stream.pipe(this.subtitleData.stream)
       this.subtitleData.stream.on('error', () => {
         this.subtitleData.stream?.destroy()
@@ -992,9 +992,17 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
 
   initParser (file) {
     return new Promise(resolve => {
-      this.subtitleData.stream = new SubtitleStream()
+      this.subtitleData.stream = new SubtitleParser()
       this.handleSubtitleParser(this.subtitleData.stream)
-      this.subtitleData.stream.once('tracks', () => {
+      this.subtitleData.stream.once('tracks', tracks => {
+        if (!tracks.length) {
+          this.subtitleData.parsed = true
+          resolve()
+          this.subtitleData.stream.destroy()
+          fileStreamStream.destroy()
+        }
+      })
+      this.subtitleData.stream.once('subtitle', () => {
         resolve()
         fileStreamStream.destroy()
       })
@@ -1005,19 +1013,23 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
 
   handleSubtitleParser (parser, skipFile) {
     parser.once('tracks', tracks => {
-      tracks.forEach(track => {
-        if (!this.subtitleData.tracks[track.number]) {
-        // overwrite webvtt or other header with custom one
-          if (track.type !== 'ass') track.header = this.subtitleData.defaultHeader
-          if (!this.subtitleData.current) {
-            this.subtitleData.current = track.number
-            this.createRadioElement(undefined, 'captions')
+      if (!tracks.length) {
+        this.subtitleData.parsed = true
+      } else {
+        tracks.forEach(track => {
+          if (!this.subtitleData.tracks[track.number]) {
+            // overwrite webvtt or other header with custom one
+            if (track.type !== 'ass') track.header = this.subtitleData.defaultHeader
+            if (!this.subtitleData.current) {
+              this.subtitleData.current = track.number
+              this.createRadioElement(undefined, 'captions')
+            }
+            this.subtitleData.tracks[track.number] = new Set()
+            this.subtitleData.headers[track.number] = track
+            this.createRadioElement(track, 'captions')
           }
-          this.subtitleData.tracks[track.number] = new Set()
-          this.subtitleData.headers[track.number] = track
-          this.createRadioElement(track, 'captions')
-        }
-      })
+        })
+      }
     })
     parser.on('subtitle', (subtitle, trackNumber) => {
       if (!this.subtitleData.parsed) {
