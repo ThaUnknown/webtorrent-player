@@ -548,7 +548,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         this.player.classList.add('pip')
         const tracks = []
         const videostream = this.video.captureStream(await this.fps)
-        if (!this.burnIn) {
+        if (this.burnIn) {
           const { stream, destroy } = await this.getBurnIn(!this.subtitleData.renderer)
           tracks.push(stream.getVideoTracks()[0], videostream.getAudioTracks()[0])
           this.presentationConnection.addEventListener('terminate', destroy)
