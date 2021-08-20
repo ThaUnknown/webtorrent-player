@@ -26,21 +26,21 @@ Note: the user needs to include the `/sw.js` and `/lib/subtitles-octopus-worker.
 - Browser based support for streaming video containers, codecs and multi-audio*
 - Streamed file downloading [allows you to start saving files to drive before they finish downloading, allowing for external playback/modification]
 - Subtitle support [SRT, VTT, SSA, ASS]*
-- Softcoded/embedded subtitles [embedded in video file]
-- External subtitles [external files]
-- Full subtitle support display in PiP
-- Full subtitle support in Cast
+	- Softcoded/embedded subtitles [embedded in video file]
+	- External subtitles [external files]
+	- Full subtitle support display in PiP
+	- Full subtitle support in Cast
 - Offline file storage [allows you to play back specified torrents when offline]*
 - Feature rich UI*
-- Highly optimized and responsive
-- Supports MediaSession
-- Mobile friendly
-- Keybinds
-- Seeking preview thumbnails
+	- Highly optimized and responsive
+	- Supports MediaSession
+	- Mobile friendly
+	- Keybinds
+	- Seeking preview thumbnails
 - Auto-play next video
 - Cast support
-- All subtitles formats [if burn-in is enabled]
-- All codecs [even ones unsupported by cast, if burn-in is enabled]
+	- All subtitles formats [if burn-in is enabled]
+	- All codecs [even ones unsupported by cast, if burn-in is enabled]
 - Fully client-sided
 
 \* more information below
