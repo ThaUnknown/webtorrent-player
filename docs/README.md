@@ -1,5 +1,5 @@
 <div align="center">
-	<img src="logo.png" width="300">
+<img src="logo.png" width="300">
 
 # WebTorrentPlayer
 </div>
@@ -26,21 +26,21 @@ Note: the user needs to include the `/sw.js` and `/lib/subtitles-octopus-worker.
 - Browser based support for streaming video containers, codecs and multi-audio*
 - Streamed file downloading [allows you to start saving files to drive before they finish downloading, allowing for external playback/modification]
 - Subtitle support [SRT, VTT, SSA, ASS]*
-	- Softcoded/embedded subtitles [embedded in video file]
-	- External subtitles [external files]
-	- Full subtitle support display in PiP
-	- Full subtitle support in Cast
+- Softcoded/embedded subtitles [embedded in video file]
+- External subtitles [external files]
+- Full subtitle support display in PiP
+- Full subtitle support in Cast
 - Offline file storage [allows you to play back specified torrents when offline]*
 - Feature rich UI*
-	- Highly optimized and responsive
-	- Supports MediaSession
-	- Mobile friendly
-	- Keybinds
-	- Seeking preview thumbnails
+- Highly optimized and responsive
+- Supports MediaSession
+- Mobile friendly
+- Keybinds
+- Seeking preview thumbnails
 - Auto-play next video
 - Cast support
-	- All subtitles formats [if burn-in is enabled]
-	- All codecs [even ones unsupported by cast, if burn-in is enabled]
+- All subtitles formats [if burn-in is enabled]
+- All codecs [even ones unsupported by cast, if burn-in is enabled]
 - Fully client-sided
 
 \* more information below
@@ -51,19 +51,19 @@ Firefox is bad. I mean, it's good as a browser, but it clearly doesn't want to s
 # Container and codec support
 WebTorrentPlayer uses the browser's built in video player [thanks to [jimmywarting](https://github.com/jimmywarting/webtorrent-server-browser) for this idea] to play back files, this means playback support is browser dependent
 
-| Containers| Chromium 	| Mobile Chromium	| Edge Chromium | Firefox	|
+|Containers|Chromium|Mobile Chromium|Edge Chromium|Firefox|
 |-|:-:|:-:|:-:|:-:|
-| 3g2 		| ✓ 		| ✓ 				| ✓ 			| ✓ 		|
-| 3gp 		| ✓ 		| ✓ 				| ✓ 			| ✘ 		|
-| avi 		| ✘ 		| ✘					| ✘ 			| ✘ 		|
-| m2ts 		| ✘ 		| ✘ 				| ✓** 			| ✘ 		|
-| m4v etc. 	| ✓*		| ✓* 				| ✓* 			| ✓* 		|
-| mp4 		| ✓ 		| ✓ 				| ✓ 			| ✓ 		|
-| mpeg 		| ✘ 		| ✘ 				| ✘ 			| ✘ 		|
-| mov 		| ✓ 		| ✓ 				| ✓ 			| ✓ 		|
-| ogm ogv 	| ✓ 		| ✓ 				| ✓ 			| ✓ 		|
-| webm 		| ✓ 		| ✓ 				| ✓ 			| ✓ 		|
-| mkv 		| ✓ 		| ✓ 				| ✓ 			| ✘ 		|
+|3g2|✓|✓|✓|✓|
+|3gp|✓|✓|✓|✘|
+|avi|✘|✘|✘|✘|
+|m2ts|✘|✘|✓**|✘|
+|m4v etc.|✓*|✓*|✓*|✓*|
+|mp4|✓|✓|✓|✓|
+|mpeg|✘|✘|✘|✘|
+|mov|✓|✓|✓|✓|
+|ogm ogv|✓|✓|✓|✓|
+|webm|✓|✓|✓|✓|
+|mkv|✓|✓|✓|✘|
 
 \* Container might be supported, but the container's codecs might not be.  
 \*\* Documented as working, but can't reproduce.  
@@ -71,29 +71,29 @@ Full list of all tested video extensions:
 .3g2 .3gp .asf .avi .dv .flv .gxf .m2ts .m4a .m4b .m4p .m4r .m4v .mkv .mov .mp4 .mpd .mpeg .mpg .mxf .nut .ogm .ogv .swf .ts .vob .webm .wmv .wtv  
 Are any missing?
 
-| Video Codecs| Chromium 	| Mobile Chromium 	| Edge Chromium 	| Firefox 	|
+|Video Codecs|Chromium|Mobile Chromium|Edge Chromium|Firefox|
 |-|:-:|:-:|:-:|:-:|
-| AV1          	| ✓        	| ✓               	| ✓             	| ✓       	|
-| H.263        	| ✘        	| ✘               	| ✘             	| ✘       	|
-| H.264        	| ✓        	| ✓               	| ✓             	| ✓       	|
-| H.265        	| ✘        	| ✘               	| ✓*            	| ✘       	|
-| MPEG-2/4     	| ✘        	| ✘               	| ✘             	| ✘       	|
-| Theora       	| ✓        	| ✘               	| ✓             	| ✓       	|
-| VP8/9        	| ✓        	| ✓               	| ✓             	| ✓       	|
+|AV1|✓|✓|✓|✓|
+|H.263|✘|✘|✘|✘|
+|H.264|✓|✓|✓|✓|
+|H.265|✘|✘|✓*|✘|
+|MPEG-2/4|✘|✘|✘|✘|
+|Theora|✓|✘|✓|✓|
+|VP8/9|✓|✓|✓|✓|
 
 \* Requires MSStore extension which you can get by opening this link `ms-windows-store://pdp/?ProductId=9n4wgh0z6vhq` while using Edge.
 
-| Audio Codecs 	| Chromium 	| Mobile Chromium 	| Edge Chromium 	| Firefox 	|
+|Audio Codecs|Chromium|Mobile Chromium|Edge Chromium|Firefox|
 |-|:-:|:-:|:-:|:-:|
-| AAC          	| ✓        	| ✓               	| ✓             	| ✓       	|
-| AC3          	| ✘        	| ✘               	| ✓             	| ✘       	|
-| DTS          	| ✘        	| ✘               	| ✘             	| ✘       	|
-| EAC3         	| ✘        	| ✘               	| ✓             	| ✘       	|
-| FLAC         	| ✓        	| ✓*              	| ✓             	| ✓       	|
-| MP3          	| ✓        	| ✓               	| ✓             	| ✓       	|
-| Opus         	| ✓        	| ✓               	| ✓             	| ✓       	|
-| TrueHD       	| ✘        	| ✘               	| ✘             	| ✘       	|
-| Vorbis       	| ✓        	| ✓               	| ✓             	| ✓*      	|
+|AAC|✓|✓|✓|✓|
+|AC3|✘|✘|✓|✘|
+|DTS|✘|✘|✘|✘|
+|EAC3|✘|✘|✓|✘|
+|FLAC|✓|✓*|✓|✓|
+|MP3|✓|✓|✓|✓|
+|Opus|✓|✓|✓|✓|
+|TrueHD|✘|✘|✘|✘|
+|Vorbis|✓|✓|✓|✓*|
 
 \* Might not work in some video containers.
 
