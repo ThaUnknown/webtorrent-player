@@ -37,7 +37,7 @@ export default class WebTorrentPlayer extends WebTorrent {
       })
     }
     window.addEventListener('unload', () => {
-      this.cleanupTorrents()
+      this.destroy()
       this.cleanupVideo()
     })
 
@@ -228,7 +228,6 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
                   duration += this.video.played.end(index) - this.video.played.start(index)
                 }
                 const rawFPS = metaData.presentedFrames / duration
-                console.log(rawFPS, metaData)
                 if (rawFPS < 28) {
                   resolve(23.976)
                 } else if (rawFPS <= 35) {
@@ -548,13 +547,13 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         this.changeControlsIcon('toggleCast', 'cast_connected')
         this.player.classList.add('pip')
         const tracks = []
-        if (this.burnIn && this.subtitleData.renderer) {
-          const { stream, destroy } = await this.getBurnIn()
-          tracks.push(stream.getTracks()[0], this.video.captureStream().getAudioTracks()[0])
+        const videostream = this.video.captureStream(await this.fps)
+        if (!this.burnIn) {
+          const { stream, destroy } = await this.getBurnIn(!this.subtitleData.renderer)
+          tracks.push(stream.getVideoTracks()[0], videostream.getAudioTracks()[0])
           this.presentationConnection.addEventListener('terminate', destroy)
         } else {
-          const stream = this.video.captureStream()
-          tracks.push(stream.getVideoTracks()[0], stream.getAudioTracks()[0])
+          tracks.push(videostream.getVideoTracks()[0], videostream.getAudioTracks()[0])
         }
         for (const track of tracks) {
           peer.pc.addTrack(track)
@@ -601,7 +600,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }
   }
 
-  async getBurnIn () {
+  async getBurnIn (noSubs) {
     if (this.burnIn) {
       const canvas = document.createElement('canvas')
       const context = canvas.getContext('2d', { alpha: false })
@@ -612,7 +611,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       const renderFrame = () => {
         if (running === true) {
           context.drawImage(this.video, 0, 0)
-          context.drawImage(this.subtitleData?.renderer?.canvas, 0, 0, canvas.width, canvas.height)
+          if (!noSubs) context.drawImage(this.subtitleData.renderer?.canvas, 0, 0, canvas.width, canvas.height)
           requestAnimationFrame(renderFrame)
         }
       }
@@ -819,13 +818,13 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
             ? (track.language || (!Object.values(this.subtitleData.headers).some(header => header.language === 'eng' || header.language === 'en') ? 'eng' : track.type)) + (track.name ? ' - ' + track.name : '')
             : (track.language || (!Object.values(this.video.audioTracks).some(track => track.language === 'eng' || track.language === 'en') ? 'eng' : track.label)) + (track.label ? ' - ' + track.label : '')
         : 'OFF' // TODO: clean this up, TLDR assume english track if track lang is undefined || 'und' and there isnt an existing eng track already
-      frag.appendChild(input)
-      frag.appendChild(label)
+      frag.append(input)
+      frag.append(label)
       if (type === 'captions') {
-        this.controls.selectCaptions.appendChild(frag)
+        this.controls.selectCaptions.append(frag)
         this.controls.captionsButton.removeAttribute('disabled')
       } else {
-        this.controls.selectAudio.appendChild(frag)
+        this.controls.selectAudio.append(frag)
       }
     }
   }
@@ -978,7 +977,6 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         fonts: this.subtitleData.fonts,
         fallbackFont: 'https://fonts.gstatic.com/s/roboto/v20/KFOlCnqEu92Fr1MmEU9fBBc4.woff2',
         workerUrl: 'lib/subtitles-octopus-worker.js',
-        timeOffset: 0.041,
         onReady: () => { // weird hack for laggy subtitles, this is some issue in SO
           if (!this.video.paused) {
             this.video.pause()
@@ -1134,7 +1132,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   // cleanup torrent and store
   cleanupTorrents () {
   // creates an array of all non-offline store torrents and removes them
-    this.torrents.filter(torrent => !this.offlineTorrents[torrent.infoHash]).forEach(torrent => torrent.destroy({ destroyStore: this.destroyStore }))
+    this.torrents.filter(torrent => !this.offlineTorrents[torrent.infoHash]).forEach(torrent => torrent.destroy())
   }
 
   // add torrent for offline download
