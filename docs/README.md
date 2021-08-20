@@ -41,6 +41,7 @@ Note: the user needs to include the `/sw.js` and `/lib/subtitles-octopus-worker.
 - Cast support
 	- All subtitles formats [if burn-in is enabled]
 	- All codecs [even ones unsupported by cast, if burn-in is enabled]
+  - Multi-audio support*
 - Fully client-sided
 
 \* more information below
