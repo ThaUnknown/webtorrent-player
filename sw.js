@@ -1,4 +1,3 @@
-/* global clients, MessageChannel, ReadableStream, Response */
 /* eslint-env serviceworker */
 
 const portTimeoutDuration = 5000

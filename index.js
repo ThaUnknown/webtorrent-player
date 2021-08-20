@@ -1,13 +1,10 @@
 /* global MediaMetadata, navNowPlaying */
 import WebTorrent from 'webtorrent'
-import rangeParser from 'range-parser'
 import { SubtitleParser, SubtitleStream } from 'matroska-subtitles'
 import HybridChunkStore from 'hybrid-chunk-store'
-import mime from 'mime'
 import SubtitlesOctopus from './lib/subtitles-octopus.js'
 import Peer from './lib/peer.js'
 
-const keepAliveTime = 20000
 const units = [' B', ' KB', ' MB', ' GB', ' TB']
 
 export default class WebTorrentPlayer extends WebTorrent {
@@ -16,11 +13,21 @@ export default class WebTorrentPlayer extends WebTorrent {
 
     this.storeOpts = options.storeOpts || {}
 
-    this.scope = location.pathname.substr(0, location.pathname.lastIndexOf('/') + 1)
-    this.worker = location.origin + this.scope + 'sw.js' === navigator.serviceWorker?.controller?.scriptURL && navigator.serviceWorker.controller
-    if (!this.worker) {
-      navigator.serviceWorker.register('sw.js', { scope: this.scope }).then(reg => {
-        this.worker = reg.active || reg.waiting || reg.installing
+    const scope = location.pathname.substr(0, location.pathname.lastIndexOf('/') + 1)
+    const worker = location.origin + scope + 'sw.js' === navigator.serviceWorker?.controller?.scriptURL && navigator.serviceWorker.controller
+    const handleWorker = worker => {
+      const checkState = worker => {
+        return worker.state === 'activated' && this.loadWorker(worker)
+      }
+      if (!checkState(worker)) {
+        worker.addEventListener('statechange', ({ target }) => checkState(target))
+      }
+    }
+    if (worker) {
+      handleWorker(worker)
+    } else {
+      navigator.serviceWorker.register('sw.js', { scope }).then(reg => {
+        handleWorker(reg.active || reg.waiting || reg.installing)
       }).catch(e => {
         if (String(e) === 'InvalidStateError: Failed to register a ServiceWorker: The document is in an invalid state.') {
           location.reload() // weird workaround for a weird bug
@@ -32,51 +39,6 @@ export default class WebTorrentPlayer extends WebTorrent {
     window.addEventListener('unload', () => {
       this.cleanupTorrents()
       this.cleanupVideo()
-    })
-    this.workerPortCount = 0
-    // kind of a fetch event from service worker but for the main thread.
-    navigator.serviceWorker.addEventListener('message', event => {
-      const { data } = event
-      if (!data.type || !data.type === 'webtorrent' || !data.url) return null
-      let [infoHash, ...filePath] = data.url.slice(data.url.indexOf(data.scope + 'webtorrent/') + 11 + data.scope.length).split('/')
-      filePath = decodeURI(filePath.join('/'))
-
-      if (!infoHash || !filePath) return null
-
-      const [port] = event.ports
-      const file = this.get(infoHash) && this.get(infoHash).files.find(file => file.path === filePath)
-      if (!file) return null
-      const [response, stream, raw] = this.serveFile(file, data)
-      const asyncIterator = stream && stream[Symbol.asyncIterator]()
-
-      const cleanup = () => {
-        port.onmessage = null
-        stream.destroy()
-        raw && raw.destroy()
-        this.workerPortCount--
-        if (!this.workerPortCount) {
-          clearInterval(this.workerKeepAliveInterval)
-          this.workerKeepAliveInterval = null
-        }
-      }
-
-      port.onmessage = async msg => {
-        if (msg.data) {
-          let chunk
-          try {
-            chunk = (await asyncIterator.next()).value
-          } catch (e) {
-            // chunk is yet to be downloaded or it somehow failed, should this be logged?
-          }
-          port.postMessage(chunk)
-          if (!chunk) cleanup()
-          if (!this.workerKeepAliveInterval) this.workerKeepAliveInterval = setInterval(() => fetch(`${this.worker.scriptURL.substr(0, this.worker.scriptURL.lastIndexOf('/') + 1).slice(window.location.origin.length)}webtorrent/keepalive/`), keepAliveTime)
-        } else {
-          cleanup()
-        }
-      }
-      this.workerPortCount++
-      port.postMessage(response)
     })
 
     this.video = options.video
@@ -349,59 +311,6 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     })
   }
 
-  serveFile (file, req) {
-    const res = {
-      status: 200,
-      headers: {
-        // Support range-requests
-        'Accept-Ranges': 'bytes',
-        'Content-Type': mime.getType(file.name),
-        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-        Expires: '0'
-      },
-      body: req.method === 'HEAD' ? '' : 'STREAM'
-    }
-    // force the browser to download the file if if it's opened in a new tab
-    if (req.destination === 'document') {
-      res.headers['Content-Type'] = 'application/octet-stream'
-      res.headers['Content-Disposition'] = 'attachment'
-      res.body = 'DOWNLOAD'
-    }
-
-    // `rangeParser` returns an array of ranges, or an error code (number) if
-    // there was an error parsing the range.
-    let range = rangeParser(file.length, req.headers.range || '')
-
-    if (range.constructor === Array) {
-      res.status = 206 // indicates that range-request was understood
-
-      // no support for multi-range request, just use the first range
-      range = range[0]
-
-      res.headers['Content-Range'] = `bytes ${range.start}-${range.end}/${file.length}`
-      res.headers['Content-Length'] = `${range.end - range.start + 1}`
-    } else {
-      res.headers['Content-Length'] = file.length
-    }
-    // parser is really a passthrough mkv stream now
-    const stream = req.method === 'GET' && file.createReadStream(range)
-    if (stream && file.name.endsWith('.mkv') && !this.subtitleData.parsed) {
-      this.subtitleData.stream = new SubtitleStream(this.subtitleData.stream)
-      this.handleSubtitleParser(this.subtitleData.stream, true)
-      stream.pipe(this.subtitleData.stream)
-      this.subtitleData.stream.on('error', () => {
-        this.subtitleData.stream?.destroy()
-        stream?.destroy()
-      })
-      this.subtitleData.stream.on('close', () => {
-        this.subtitleData.stream?.destroy()
-        stream?.destroy()
-      })
-    }
-
-    return [res, this.subtitleData.stream || stream, this.subtitleData.stream && stream]
-  }
-
   async buildVideo (torrent, opts = {}) { // sets video source and creates a bunch of other media stuff
     // play wanted episode from opts, or the 1st episode, or 1st file [batches: plays wanted episode, single: plays the only episode, manually added: plays first or only file]
     this.cleanupVideo()
@@ -446,11 +355,23 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         this.postDownload(true)
       })
     }
-    this.video.src = `${this.scope}webtorrent/${torrent.infoHash}/${encodeURI(this.currentFile.path)}`
+    this.currentFile.on('stream', ({ stream, file, req }, cb) => {
+      if (req.destination === 'video' && file.name.endsWith('.mkv') && !this.subtitleData.parsed) {
+        this.subtitleData.stream = new SubtitleStream(this.subtitleData.stream)
+        this.handleSubtitleParser(this.subtitleData.stream, true)
+        stream.pipe(this.subtitleData.stream)
+        cb(this.subtitleData.stream)
+      }
+    })
+    this.currentFile.streamTo(this.video)
     this.video.load()
     this.playVideo()
 
-    if (this.controls.downloadFile) this.controls.downloadFile.href = `${this.scope}webtorrent/${torrent.infoHash}/${encodeURI(this.currentFile.path)}`
+    if (this.controls.downloadFile) {
+      this.currentFile.getStreamURL((_err, url) => {
+        this.controls.downloadFile.href = url
+      })
+    }
   }
 
   cleanupVideo () { // cleans up objects, attemps to clear as much video caching as possible
