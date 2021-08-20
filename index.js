@@ -174,7 +174,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }
     if ('PresentationRequest' in window) {
       this.presentationRequest = new PresentationRequest(['lib/cast.html'])
-      this.presentationRequest.addEventListener('connectionavailable', this.initCast.bind(this))
+      this.presentationRequest.addEventListener('connectionavailable', () => this.initCast())
       this.presentationConnection = null
       navigator.presentation.defaultRequest = this.presentationRequest
       this.presentationRequest.getAvailability().then(aval => {
@@ -601,28 +601,25 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   }
 
   async getBurnIn (noSubs) {
-    if (this.burnIn) {
-      const canvas = document.createElement('canvas')
-      const context = canvas.getContext('2d', { alpha: false })
-      let running = true
-      canvas.width = this.video.videoWidth
-      canvas.height = this.video.videoHeight
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d', { alpha: false })
+    let running = true
+    canvas.width = this.video.videoWidth
+    canvas.height = this.video.videoHeight
 
-      const renderFrame = () => {
-        if (running === true) {
-          context.drawImage(this.video, 0, 0)
-          if (!noSubs) context.drawImage(this.subtitleData.renderer?.canvas, 0, 0, canvas.width, canvas.height)
-          requestAnimationFrame(renderFrame)
-        }
+    const renderFrame = () => {
+      if (running === true) {
+        context.drawImage(this.video, 0, 0)
+        if (!noSubs) context.drawImage(this.subtitleData.renderer?.canvas, 0, 0, canvas.width, canvas.height)
+        requestAnimationFrame(renderFrame)
       }
-      requestAnimationFrame(renderFrame)
-      const destroy = () => {
-        running = false
-        canvas.remove()
-      }
-      return { stream: canvas.captureStream(await this.fps), destroy }
     }
-    return null
+    requestAnimationFrame(renderFrame)
+    const destroy = () => {
+      running = false
+      canvas.remove()
+    }
+    return { stream: canvas.captureStream(await this.fps), destroy }
   }
 
   toTS (sec, full) {
