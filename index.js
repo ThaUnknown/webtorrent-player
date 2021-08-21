@@ -174,7 +174,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }
     if ('PresentationRequest' in window) {
       this.presentationRequest = new PresentationRequest(['lib/cast.html'])
-      this.presentationRequest.addEventListener('connectionavailable', () => this.initCast())
+      this.presentationRequest.addEventListener('connectionavailable', e => this.initCast(e))
       this.presentationConnection = null
       navigator.presentation.defaultRequest = this.presentationRequest
       this.presentationRequest.getAvailability().then(aval => {
@@ -217,7 +217,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
 
     this.fps = 23.976
     this.video.addEventListener('loadedmetadata', () => {
-      if (this.currentFile.name.endsWith('.mkv') && ('requestVideoFrameCallback' in HTMLVideoElement.prototype)) {
+      if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
         this.fps = new Promise(resolve => {
           const resolveFps = () => {
             this.video.removeEventListener('timeupdate', resolveFps)
