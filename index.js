@@ -556,7 +556,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
           tracks.push(videostream.getVideoTracks()[0], videostream.getAudioTracks()[0])
         }
         for (const track of tracks) {
-          peer.pc.addTrack(track)
+          peer.pc.addTrack(track, videostream)
         }
         this.video.play() // video pauses for some reason
       }
