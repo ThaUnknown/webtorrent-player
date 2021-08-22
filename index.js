@@ -995,7 +995,8 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       if (isAss) {
         callback(subtitles)
       } else {
-        for (const split of buffer.toString().split('\n\n')) {
+        const text = buffer.toString().replace(/\r/g, '')
+        for (const split of text.split('\n\n')) {
           const match = split.match(regex)
           if (match) {
             match[1] = match[1].match(/.*[.,]\d{2}/)[0]
