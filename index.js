@@ -130,7 +130,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
 
     this.onDone = undefined
 
-    this.destroyStore = !!options.destroyStore
+    this.destroyStore = !!options.destroyStore || true
 
     this.immerseTimeout = undefined
     this.immerseTime = options.immerseTime || 5
