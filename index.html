@@ -143,7 +143,8 @@
       burnIn: true,
       seekTime: 2,
       immerseTime: 10,
-      generateThumbnails: true
+      generateThumbnails: true,
+      visibilityLossPause: true
     })
     client.on('prev', params => console.log('User wants to play previous video!', params))
     client.on('next', params => console.log('User wants to play next video!', params))

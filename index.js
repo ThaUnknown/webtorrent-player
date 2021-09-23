@@ -144,8 +144,16 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }
 
     if (options.visibilityLossPause) {
+      this.wasPaused = true
       document.addEventListener('visibilitychange', () => {
-        if (!this.video.ended) document.visibilityState === 'hidden' ? this.video.pause() : this.playPause()
+        if (!this.video.ended) {
+          if (document.visibilityState === 'hidden') {
+            this.wasPaused = this.video.paused
+            this.video.pause()
+          } else {
+            if (!this.wasPaused) this.playPause()
+          }
+        }
       })
     }
 
