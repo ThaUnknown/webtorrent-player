@@ -960,11 +960,11 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
           fileStreamStream.destroy()
         }
       })
-      stream.once('subtitle', () => {
+      stream.on('subtitle', () => {
         resolve()
         fileStreamStream.destroy()
       })
-      const fileStreamStream = file.createReadStream({ end: file.length - 3 })
+      const fileStreamStream = file.createReadStream({ end: file.length / 2 })
       fileStreamStream.pipe(stream)
     })
   }
