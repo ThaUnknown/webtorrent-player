@@ -374,23 +374,25 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       this.changeControlsIcon('nowPlaying', 'EP ' + episodeInfo)
       document.title = [this.nowPlaying.mediaTitle, episodeInfo ? 'EP ' + episodeInfo : false, this.nowPlaying.name || 'WebTorrentPlayer'].filter(s => s).join(' - ')
     }
-    if (!this.currentFile.done && this.currentFile.name.endsWith('.mkv')) await this.initParser(this.currentFile)
+    if (this.currentFile.name.endsWith('mkv')) {
+      this.initParser(this.currentFile).then(() => {
+        this.currentFile.on('stream', ({ stream, file, req }, cb) => {
+          if (req.destination === 'video' && file.name.endsWith('.mkv') && !this.subtitleData.parsed) {
+            this.subtitleData.stream = new SubtitleStream(this.subtitleData.stream)
+            this.handleSubtitleParser(this.subtitleData.stream, true)
+            stream.pipe(this.subtitleData.stream)
+            cb(this.subtitleData.stream)
+          }
+        })
+      })
+    }
     await navigator.serviceWorker.ready
     if (this.currentFile.done) {
       this.postDownload()
     } else {
-      this.onDone = this.currentFile.on('done', () => {
-        this.postDownload(true)
-      })
+      this.onDone = this.currentFile.on('done', this.postDownload)
     }
-    this.currentFile.on('stream', ({ stream, file, req }, cb) => {
-      if (req.destination === 'video' && file.name.endsWith('.mkv') && !this.subtitleData.parsed) {
-        this.subtitleData.stream = new SubtitleStream(this.subtitleData.stream)
-        this.handleSubtitleParser(this.subtitleData.stream, true)
-        stream.pipe(this.subtitleData.stream)
-        cb(this.subtitleData.stream)
-      }
-    })
+
     this.currentFile.streamTo(this.video)
     this.video.load()
     this.playVideo()
@@ -911,12 +913,13 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       if (file.name.endsWith('.mkv')) {
         let parser = new SubtitleParser()
         this.handleSubtitleParser(parser, skipFiles)
-        parser.on('finish', () => {
+        const finish = () => {
           console.log('Sub parsing finished', this.toTS((performance.now() - t0) / 1000))
           this.subtitleData.parsed = true
           this.subtitleData.stream?.destroy()
+          this.subtitleData.parser?.destroy()
+          fileStream?.destroy()
           this.subtitleData.stream = undefined
-          this.subtitleData.parser.destroy()
           this.subtitleData.parser = undefined
           this.selectCaptions(this.subtitleData.current)
           parser = undefined
@@ -925,10 +928,15 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
             this.playVideo()
           }
           resolve()
+        }
+        parser.once('tracks', tracks => {
+          if (!tracks.length) finish()
         })
+        parser.once('finish', finish)
         const t0 = performance.now()
         console.log('Sub parsing started')
-        this.subtitleData.parser = file.createReadStream().pipe(parser)
+        const fileStream = file.createReadStream()
+        this.subtitleData.parser = fileStream.pipe(parser)
       } else {
         resolve()
       }
@@ -1101,9 +1109,9 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }
   }
 
-  postDownload (skipFiles) {
+  postDownload () {
     this.emit('download-done', { file: this.currentFile })
-    this.parseSubtitles(this.currentFile, skipFiles).then(() => {
+    this.parseSubtitles(this.currentFile, true).then(() => {
       if (this.generateThumbnails) {
         this.finishThumbnails(this.video.src)
       }
