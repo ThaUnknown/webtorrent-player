@@ -7,6 +7,27 @@ import Peer from './lib/peer.js'
 
 const units = [' B', ' KB', ' MB', ' GB', ' TB']
 
+function requestTimeout (callback, delay) {
+  const startedAt = Date.now()
+  let animationFrame = requestAnimationFrame(tick)
+  function tick () {
+    if (Date.now() - startedAt >= delay) {
+      callback()
+    } else {
+      animationFrame = requestAnimationFrame(tick)
+    }
+  }
+  return {
+    clear: () => cancelAnimationFrame(animationFrame)
+  }
+}
+
+function cancelTimeout (timeout) {
+  if (timeout) {
+    timeout.clear()
+  }
+}
+
 export default class WebTorrentPlayer extends WebTorrent {
   constructor (options = {}) {
     super(options.WebTorrentOpts)
@@ -547,7 +568,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         this.changeControlsIcon('toggleCast', 'cast_connected')
         this.player.classList.add('pip')
         const tracks = []
-        const videostream = this.video.captureStream(await this.fps)
+        const videostream = this.video.captureStream()
         if (this.burnIn) {
           const { stream, destroy } = await this.getBurnIn(!this.subtitleData.renderer)
           tracks.push(stream.getVideoTracks()[0], videostream.getAudioTracks()[0])
@@ -603,23 +624,22 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
   async getBurnIn (noSubs) {
     const canvas = document.createElement('canvas')
     const context = canvas.getContext('2d', { alpha: false })
-    let running = true
+    const fps = await this.fps
+    let loop = null
     canvas.width = this.video.videoWidth
     canvas.height = this.video.videoHeight
 
     const renderFrame = () => {
-      if (running === true) {
-        context.drawImage(this.video, 0, 0)
-        if (!noSubs) context.drawImage(this.subtitleData.renderer?.canvas, 0, 0, canvas.width, canvas.height)
-        requestAnimationFrame(renderFrame)
-      }
+      context.drawImage(this.video, 0, 0)
+      if (!noSubs) context.drawImage(this.subtitleData.renderer?.canvas, 0, 0, canvas.width, canvas.height)
+      loop = requestTimeout(renderFrame, 500 / fps)
     }
-    requestAnimationFrame(renderFrame)
+    loop = requestAnimationFrame(renderFrame)
     const destroy = () => {
-      running = false
+      cancelTimeout(loop)
       canvas.remove()
     }
-    return { stream: canvas.captureStream(await this.fps), destroy }
+    return { stream: canvas.captureStream(), destroy }
   }
 
   toTS (sec, full) {
