@@ -159,7 +159,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
 
     this.onDone = undefined
 
-    this.destroyStore = !!options.destroyStore || true
+    this.destroyStore = options.destroyStore != null ? !!options.destroyStore : true
 
     this.immerseTimeout = undefined
     this.immerseTime = options.immerseTime || 5
@@ -376,8 +376,9 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     }
     if (this.currentFile.name.endsWith('mkv')) {
       this.initParser(this.currentFile).then(() => {
-        this.currentFile.on('stream', ({ stream, file, req }, cb) => {
-          if (req.destination === 'video' && file.name.endsWith('.mkv') && !this.subtitleData.parsed) {
+        this.currentFile.on('stream', ({ stream, req }, cb) => {
+          if (req.destination === 'video' && !this.subtitleData.parsed) {
+            console.log(this.subtitleData.stream)
             this.subtitleData.stream = new SubtitleStream(this.subtitleData.stream)
             this.handleSubtitleParser(this.subtitleData.stream, true)
             stream.pipe(this.subtitleData.stream)
@@ -945,9 +946,9 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
 
   initParser (file) {
     return new Promise(resolve => {
-      this.subtitleData.stream = new SubtitleParser()
+      const stream = this.subtitleData.stream = new SubtitleParser()
       this.handleSubtitleParser(this.subtitleData.stream)
-      this.subtitleData.stream.once('tracks', tracks => {
+      stream.once('tracks', tracks => {
         if (!tracks.length) {
           this.subtitleData.parsed = true
           resolve()
@@ -955,12 +956,12 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
           fileStreamStream.destroy()
         }
       })
-      this.subtitleData.stream.once('subtitle', () => {
+      stream.once('subtitle', () => {
         resolve()
         fileStreamStream.destroy()
       })
       const fileStreamStream = file.createReadStream()
-      fileStreamStream.pipe(this.subtitleData.stream)
+      fileStreamStream.pipe(stream)
     })
   }
 
