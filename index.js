@@ -375,16 +375,20 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
       document.title = [this.nowPlaying.mediaTitle, episodeInfo ? 'EP ' + episodeInfo : false, this.nowPlaying.name || 'WebTorrentPlayer'].filter(s => s).join(' - ')
     }
     if (this.currentFile.name.endsWith('mkv')) {
+      let initStream = null
+      this.currentFile.on('stream', ({ stream }) => {
+        initStream = stream
+      })
       this.initParser(this.currentFile).then(() => {
         this.currentFile.on('stream', ({ stream, req }, cb) => {
           if (req.destination === 'video' && !this.subtitleData.parsed) {
-            console.log(this.subtitleData.stream)
             this.subtitleData.stream = new SubtitleStream(this.subtitleData.stream)
             this.handleSubtitleParser(this.subtitleData.stream, true)
             stream.pipe(this.subtitleData.stream)
             cb(this.subtitleData.stream)
           }
         })
+        initStream?.destroy()
       })
     }
     await navigator.serviceWorker.ready
@@ -960,7 +964,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
         resolve()
         fileStreamStream.destroy()
       })
-      const fileStreamStream = file.createReadStream()
+      const fileStreamStream = file.createReadStream({ end: file.length - 3 })
       fileStreamStream.pipe(stream)
     })
   }
