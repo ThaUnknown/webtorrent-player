@@ -57,7 +57,7 @@ export default class WebTorrentPlayer extends WebTorrent {
         }
       })
     }
-    window.addEventListener('unload', () => {
+    window.addEventListener('beforeunload', () => {
       this.destroy()
       this.cleanupVideo()
     })
@@ -395,7 +395,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     if (this.currentFile.done) {
       this.postDownload()
     } else {
-      this.onDone = this.currentFile.on('done', this.postDownload)
+      this.onDone = this.currentFile.on('done', () => this.postDownload())
     }
 
     this.currentFile.streamTo(this.video)
