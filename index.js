@@ -245,34 +245,50 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     this.streamedDownload = options.streamedDownload
 
     this.fps = 23.976
-    this.video.addEventListener('loadedmetadata', () => {
-      if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+    if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+      this.video.addEventListener('loadedmetadata', () => {
         this.fps = new Promise(resolve => {
-          const resolveFps = () => {
-            this.video.removeEventListener('timeupdate', resolveFps)
-            if (!this.video.paused) {
-              setTimeout(() => this.video.requestVideoFrameCallback((now, metaData) => {
-                let duration = 0
-                for (let index = this.video.played.length; index--;) {
-                  duration += this.video.played.end(index) - this.video.played.start(index)
-                }
-                const rawFPS = metaData.presentedFrames / duration
-                if (rawFPS < 28) {
-                  resolve(23.976)
-                } else if (rawFPS <= 35) {
-                  resolve(29.97)
-                } else if (rawFPS <= 70) {
-                  resolve(59.94)
+          let lastmeta = null
+          let waspaused = false
+          let count = 0
+
+          function handleFrames (now, metadata) {
+            if (count) { // resolve on 2nd frame, 1st frame might be a cut-off
+              if (lastmeta) {
+                const msbf = (metadata.mediaTime - lastmeta.mediaTime) / (metadata.presentedFrames - lastmeta.presentedFrames)
+                const rawFPS = (1 / msbf).toFixed(3)
+                // this is accurate for mp4, mkv is a few ms off
+                if (this.currentFile.name.endsWith('.mkv')) {
+                  if (rawFPS < 25 && rawFPS > 22) {
+                    resolve(23.976)
+                  } else if (rawFPS < 31 && rawFPS > 28) {
+                    resolve(29.97)
+                  } else if (rawFPS < 62 && rawFPS > 58) {
+                    resolve(59.94)
+                  } else {
+                    resolve(rawFPS) // smth went VERY wrong
+                  }
                 } else {
-                  resolve(23.976) // smth went VERY wrong
+                  resolve(rawFPS)
                 }
-              }), 2000)
+                if (waspaused) this.video.pause()
+              } else {
+                lastmeta = metadata
+                this.video.requestVideoFrameCallback(handleFrames)
+              }
+            } else {
+              count++
+              if (this.video.paused) {
+                waspaused = true
+                this.video.play()
+              }
+              this.video.requestVideoFrameCallback(handleFrames)
             }
           }
-          this.video.addEventListener('timeupdate', resolveFps)
+          this.video.requestVideoFrameCallback(handleFrames)
         })
-      }
-    })
+      })
+    }
 
     for (const [functionName, elements] of Object.entries(this.controls)) {
       if (this[functionName]) {
@@ -641,18 +657,32 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
     const context = canvas.getContext('2d', { alpha: false })
     const fps = await this.fps
     let loop = null
+    let destroy = null
     canvas.width = this.video.videoWidth
     canvas.height = this.video.videoHeight
-
-    const renderFrame = () => {
-      context.drawImage(this.video, 0, 0)
-      if (!noSubs) context.drawImage(this.subtitleData.renderer?.canvas, 0, 0, canvas.width, canvas.height)
-      loop = requestTimeout(renderFrame, 500 / fps)
-    }
-    loop = requestAnimationFrame(renderFrame)
-    const destroy = () => {
-      cancelTimeout(loop)
-      canvas.remove()
+    if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+      const renderFrame = async () => {
+        context.drawImage(this.video, 0, 0)
+        if (!noSubs) context.drawImage(this.subtitleData.renderer?.canvas, 0, 0, canvas.width, canvas.height)
+        loop = this.video.requestVideoFrameCallback(renderFrame)
+      }
+      loop = this.video.requestVideoFrameCallback(renderFrame)
+      destroy = () => {
+        this.video.cancelVideoFrameCallback(loop)
+        canvas.remove()
+      }
+    } else {
+      // for the firefox idiots
+      const renderFrame = () => {
+        context.drawImage(this.video, 0, 0)
+        if (!noSubs) context.drawImage(this.subtitleData.renderer?.canvas, 0, 0, canvas.width, canvas.height)
+        loop = requestTimeout(renderFrame, 500 / fps)
+      }
+      loop = requestAnimationFrame(renderFrame)
+      destroy = () => {
+        cancelTimeout(loop)
+        canvas.remove()
+      }
     }
     return { stream: canvas.captureStream(), destroy }
   }
