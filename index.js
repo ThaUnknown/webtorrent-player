@@ -252,7 +252,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
           let waspaused = false
           let count = 0
 
-          function handleFrames (now, metadata) {
+          const handleFrames = (now, metadata) => {
             if (count) { // resolve on 2nd frame, 1st frame might be a cut-off
               if (lastmeta) {
                 const msbf = (metadata.mediaTime - lastmeta.mediaTime) / (metadata.presentedFrames - lastmeta.presentedFrames)
