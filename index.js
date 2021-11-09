@@ -246,7 +246,7 @@ Style: Default,${options.defaultSSAStyles || 'Roboto Medium,26,&H00FFFFFF,&H0000
 
     this.fps = 23.976
     if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
-      this.video.addEventListener('loadedmetadata', () => {
+      this.video.addEventListener('loadeddata', () => {
         this.fps = new Promise(resolve => {
           let lastmeta = null
           let waspaused = false
