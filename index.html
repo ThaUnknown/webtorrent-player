@@ -155,7 +155,14 @@
     client.on('offline-torrent', params => console.log('Player loaded an offline stored torrent!', params))
     client.on('no-files', params => console.error('Player couldnt find any playable video files!', params))
     client.on('no-peers', params => console.error('Player couldnt find any peers!', params))
-
+    if(window.location.hash) {
+      var hash = window.location.hash.substring(1); //Puts hash in variable, and removes the # character
+      alert (hash);
+      client.playTorrent('magnet:?xt=urn:btih:'+ hash +"&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F")
+      // hash found
+    } else {
+      // No hash found
+    }
     function d(a) {
       switch (a) {
         case 1:
