@@ -157,7 +157,7 @@
     client.on('no-peers', params => console.error('Player couldnt find any peers!', params))
     if(window.location.hash) {
       var hash = window.location.hash.substring(1); //Puts hash in variable, and removes the # character
-      alert(hash);
+      //alert(hash);
       client.playTorrent('magnet:?xt=urn:btih:'+ hash + '&tr=wss%3A%2F%2Ftracker.openwebtorrent.com');
       // hash found
     } else {
