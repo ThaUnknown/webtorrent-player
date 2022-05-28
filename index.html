@@ -158,7 +158,9 @@
     if(window.location.hash) {
       var hash = window.location.hash.substring(1); //Puts hash in variable, and removes the # character
       //alert(hash);
-      client.playTorrent('magnet:?xt=urn:btih:'+ hash + '&tr=wss%3A%2F%2Ftracker.openwebtorrent.com');
+      if hash.length == 40 {
+        client.playTorrent('magnet:?xt=urn:btih:'+ hash + '&tr=wss%3A%2F%2Ftracker.openwebtorrent.com');
+      }
       // hash found
     } else {
       // No hash found
